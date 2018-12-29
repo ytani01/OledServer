@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import sys
 import Adafruit_SSD1306
 from PIL import Image, ImageDraw, ImageFont
 #import textwrap
@@ -40,7 +41,6 @@ class MisakiFont:
         self.font = ImageFont.truetype(FONT_PATH, self.fontsize, encoding='unic')
         (self.char_width, self.char_height) = self.font.getsize('８')
         self.char_height += 1
-        #print((self.char_width, self.char_height))
         
         # cols and rows
         self.cols = int(self.disp.width / self.char_width)
@@ -64,7 +64,6 @@ class MisakiFont:
             return
         self.draw.rectangle((0,0,self.disp.width,self.disp.height), outline=0, fill=0)
         self.disp.image(self.image)
-        #self.disp.clear()
         self.disp.display()
         self.cur_row = 0
         for i in range(self.rows):
@@ -97,8 +96,6 @@ class MisakiFont:
             self.cur_row = self.rows - 1
             self.str.pop(0)
             self.str.append('')
-#        print("self.str=", end='')
-#        print(self.str)
 
     def println(self, s):
         if not self.enable:
