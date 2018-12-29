@@ -21,6 +21,9 @@ handler.setFormatter(handler_fmt)
 logger.addHandler(handler)
 logger.propagate = False
 
+import locale
+locale.setlocale(locale.LC_CTYPE, ('ja_JP.UTF-8'))
+print(locale.getpreferredencoding())
 #
 # ワーカースレッド
 #
@@ -29,7 +32,7 @@ logger.propagate = False
 #
 #   msg = {'type':'...', 'content':'...'}
 #
-class OldeWorker(threading.Thread):
+class OledWorker(threading.Thread):
     CMD_PREFIX = '$$$'
     
     def __init__(self):
@@ -78,21 +81,22 @@ class OldeWorker(threading.Thread):
             #
             # main work
             #
-            msg_list = msg_content.split()
-            if msg_list.pop(0) == __class__.CMD_PREFIX:
-                logger.debug('%s> recv special command: %s',
-                             __class__.__name__, msg_list)
-                for cmd in msg_list:
-                    if cmd == 'zenkaku_on':
-                        self.misakifont.set_zenkaku_flag(True)
-                        continue
-                    if cmd == 'zenkaku_off':
-                        self.misakifont.set_zenkaku_flag(False)
-                        continue
-                    if cmd == 'clear':
-                        self.misakifont.clear()
-                        continue
-                continue
+            cmd_list = msg_content.split()
+            if len(cmd_list) > 0:
+                if cmd_list.pop(0) == __class__.CMD_PREFIX:
+                    logger.debug('%s> recv special command: %s',
+                                 __class__.__name__, cmd_list)
+                    for cmd in cmd_list:
+                        if cmd == 'zenkaku_on':
+                            self.misakifont.set_zenkaku_flag(True)
+                            continue
+                        if cmd == 'zenkaku_off':
+                            self.misakifont.set_zenkaku_flag(False)
+                            continue
+                        if cmd == 'clear':
+                            self.misakifont.clear()
+                            continue
+                    continue
                 
             self.misakifont.println(msg_content)
             '''
@@ -110,7 +114,7 @@ class OldeWorker(threading.Thread):
 #  ネットワークからメッセージを受信して、ワーカースレッドにメッセージを送る。
 #  メッセージの送信はキューを介して行われるため、非同期実行可能。
 #
-class OldeHandler(socketserver.StreamRequestHandler):
+class OledHandler(socketserver.StreamRequestHandler):
     def write(self, msg):
         try:
             self.wfile.write(msg)
@@ -153,9 +157,12 @@ class OldeHandler(socketserver.StreamRequestHandler):
             # send message to worker
             #
             try:
-                self.server.worker.send_msg(net_data.decode('utf-8').strip())
+                self.server.worker.send_msg(net_data.decode('utf-8'))
 
             except UnicodeDecodeError:
+                ### XXX デコードエラーへの対応: TBD ###
+                logger.error('%s> UnicodeDecodeError ignored: %s',
+                             __class__.__name__, net_data)
                 pass
 
         logger.debug('%s> handle() done', __class__.__name__)
@@ -167,7 +174,7 @@ class OldeHandler(socketserver.StreamRequestHandler):
 #   初期化時にハンドラークラスを登録する
 #   main関数の server.serve_forever() でメインループを開始する
 #
-class OldeServer(socketserver.TCPServer):
+class OledServer(socketserver.TCPServer):
     DEF_PORT_NUM = 12345
     allow_reuse_address = True
 
@@ -177,8 +184,9 @@ class OldeServer(socketserver.TCPServer):
         self.port_num	= port_num
         if self.port_num == 0:
             self.port_num = __class__.DEF_PORT_NUM
-            
-        return super().__init__(('', self.port_num), OldeHandler)
+        logger.info('%s> port=%d', __class__.__name__, self.port_num)
+        
+        return super().__init__(('', self.port_num), OledHandler)
 
     def __del__(self):
         global continueToServe
@@ -192,13 +200,14 @@ class OldeServer(socketserver.TCPServer):
 def main(port):
     global continueToServe
     continueToServe = True
-    
-    worker = OldeWorker()
+
+    worker = OledWorker()
     worker.start()
-    logger.info('main> worker started')
+    logger.debug('main> worker started: port=%d', port)
 
     try:
-        server = OldeServer(worker, port)
+        logger.debug('main> port=%d', port)
+        server = OledServer(worker, port)
 
     except Exception as e:
         logger.error('main> Exception %s %s', type(e), e)
@@ -207,7 +216,7 @@ def main(port):
     try:
         while continueToServe:
             server.handle_request()
-            logger.info('main> handle_request() done')
+            logger.debug('main> handle_request() done')
 
     except KeyboardInterrupt:
         logger.warn('main> == Interrupted ==')
