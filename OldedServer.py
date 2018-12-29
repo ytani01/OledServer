@@ -21,9 +21,11 @@ handler.setFormatter(handler_fmt)
 logger.addHandler(handler)
 logger.propagate = False
 
+'''
 import locale
 locale.setlocale(locale.LC_CTYPE, ('ja_JP.UTF-8'))
 print(locale.getpreferredencoding())
+'''
 #
 # ワーカースレッド
 #
