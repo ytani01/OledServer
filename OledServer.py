@@ -21,11 +21,6 @@ handler.setFormatter(handler_fmt)
 logger.addHandler(handler)
 logger.propagate = False
 
-'''
-import locale
-locale.setlocale(locale.LC_CTYPE, ('ja_JP.UTF-8'))
-print(locale.getpreferredencoding())
-'''
 #
 # ワーカースレッド
 #
@@ -101,11 +96,6 @@ class OledWorker(threading.Thread):
                     continue
                 
             self.misakifont.println(msg_content)
-            '''
-            for w in msg_content.split():
-                print('%s> [%s]' % (__class__.__name__, w))
-                time.sleep(1)
-            '''
 
             time.sleep(0.01)
             
@@ -116,12 +106,50 @@ class OledWorker(threading.Thread):
 #  ネットワークからメッセージを受信して、ワーカースレッドにメッセージを送る。
 #  メッセージの送信はキューを介して行われるため、非同期実行可能。
 #
+#  XXX なぜか特定のTELNET制御コードを変換しなければならない
+#  XXX 変換しきれない…TBD
+#
 class OledHandler(socketserver.StreamRequestHandler):
     def write(self, msg):
         try:
             self.wfile.write(msg)
         except:
             logger.error('%s> write(): Error !', __class__.__name__)
+
+    def getline(self, byte_data):
+        TELNET_TO_BYTE = {
+            b'\xff\xed\xff\xfd\x06': b'\x9a',
+            b'\xff\xf3\xff\xfd\x06': b'\x9c',
+            b'\xff\xf4\xff\xfd\x06': b'\x83',
+            b'\xff\xf5\xff\xfd\x06': b'\x8f'
+        }
+
+        line = ''
+
+        # XXX なぜか特定のTELNET制御コードを変換しなければならない
+        f = False
+        for b in byte_data:
+            if int(b) == 0xff:
+                f = True
+            if f:
+                logger.debug('TELNET code: %02X', int(b))
+                if int(b) == 0x06:
+                    f = False
+        
+        for code in TELNET_TO_BYTE.keys():
+            byte_data = byte_data.replace(code,
+                                          TELNET_TO_BYTE[code])
+        logger.debug('%s>%s> byte_data: \n%s',
+                     __class__.__name__, 'getline', byte_data)
+
+        try:
+            line = byte_data.decode('utf-8', errors='ignore')
+        except UnicodeDecodeError:
+            ### XXX デコードエラーへの対応: TBD ###
+            logger.error('%s>%s> UnicodeDecodeError ignored: %s',
+                         __class__.__name__, 'getline', byte_data)
+
+        return line.rstrip()
 
     def handle(self):
         global continueToServe
@@ -134,7 +162,8 @@ class OledHandler(socketserver.StreamRequestHandler):
             # receive message from client
             #
             try:
-                net_data = self.request.recv(512)
+                #net_data = self.request.recv(512)
+                net_data = self.rfile.readline()
 
             except ConnectionResetError:
                 logger.error('%s> ConnectionResetError', __class__.__name__)
@@ -144,7 +173,7 @@ class OledHandler(socketserver.StreamRequestHandler):
                 continueToServe = False
                 break
 
-            logger.debug('%s> net_data: %s', __class__.__name__, net_data)
+            logger.debug('%s> net_data: \n%s', __class__.__name__, net_data)
             
             if len(net_data) == 0:
                 logger.debug('%s> Connection closed', __class__.__name__)
@@ -155,17 +184,12 @@ class OledHandler(socketserver.StreamRequestHandler):
                 continueToServe = False
                 break
 
-            #
+            # decode and something to do
+            line = self.getline(net_data)
+            logger.debug('%s> line=\'%s\'', __class__.__name__, line)
+            
             # send message to worker
-            #
-            try:
-                self.server.worker.send_msg(net_data.decode('utf-8'))
-
-            except UnicodeDecodeError:
-                ### XXX デコードエラーへの対応: TBD ###
-                logger.error('%s> UnicodeDecodeError ignored: %s',
-                             __class__.__name__, net_data)
-                pass
+            self.server.worker.send_msg(line)
 
         logger.debug('%s> handle() done', __class__.__name__)
             
