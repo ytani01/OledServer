@@ -30,7 +30,7 @@ logger.propagate = False
 #   msg = {'type':'...', 'content':'...'}
 #
 class OledWorker(threading.Thread):
-    CMD_PREFIX = '$$$'
+    CMD_PREFIX = '@@@'
     
     def __init__(self):
         self.msgq = queue.Queue()
@@ -110,18 +110,27 @@ class OledWorker(threading.Thread):
 #  XXX 変換しきれない…TBD
 #
 class OledHandler(socketserver.StreamRequestHandler):
+    ACK = 'ACK\r\n'.encode('utf-8')
+
     def write(self, msg):
         try:
             self.wfile.write(msg)
         except:
             logger.error('%s> write(): Error !', __class__.__name__)
 
+    def send_ack(self):
+        self.write(__class__.ACK)
+
     def getline(self, byte_data):
         TELNET_TO_BYTE = {
             b'\xff\xed\xff\xfd\x06': b'\x9a',
             b'\xff\xf3\xff\xfd\x06': b'\x9c',
             b'\xff\xf4\xff\xfd\x06': b'\x83',
-            b'\xff\xf5\xff\xfd\x06': b'\x8f'
+            b'\xff\xf5\xff\xfd\x06': b'\x8f',
+            b'\x01': b'',
+            b'\x02': b'',
+            b'\x03': b'',
+            b'\x04': b''
         }
 
         line = ''
@@ -136,11 +145,15 @@ class OledHandler(socketserver.StreamRequestHandler):
                 if int(b) == 0x06:
                     f = False
         
+        byte_data0 = byte_data
         for code in TELNET_TO_BYTE.keys():
             byte_data = byte_data.replace(code,
                                           TELNET_TO_BYTE[code])
-        logger.debug('%s>%s> byte_data: \n%s',
-                     __class__.__name__, 'getline', byte_data)
+        if byte_data != byte_data0:
+            logger.debug('%s>%s> byte_data0: \n%s',
+                         __class__.__name__, 'getline', byte_data0)
+            logger.debug('%s>%s> byte_data: \n%s',
+                         __class__.__name__, 'getline', byte_data)
 
         try:
             line = byte_data.decode('utf-8', errors='ignore')
@@ -154,7 +167,7 @@ class OledHandler(socketserver.StreamRequestHandler):
     def handle(self):
         global continueToServe
         
-        self.write('[Connected]\r\n'.encode('utf-8'))
+        self.send_ack()
         logger.info('%s> Connected', __class__.__name__)
 
         while True:
@@ -173,7 +186,7 @@ class OledHandler(socketserver.StreamRequestHandler):
                 continueToServe = False
                 break
 
-            logger.debug('%s> net_data: \n%s', __class__.__name__, net_data)
+            #logger.debug('%s> net_data: \n%s', __class__.__name__, net_data)
             
             if len(net_data) == 0:
                 logger.debug('%s> Connection closed', __class__.__name__)
@@ -191,6 +204,10 @@ class OledHandler(socketserver.StreamRequestHandler):
             # send message to worker
             self.server.worker.send_msg(line)
 
+            # replay ack
+            self.send_ack()
+            logger.debug('%s> replay ACK', __class__.__name__)
+
         logger.debug('%s> handle() done', __class__.__name__)
             
 #
@@ -204,15 +221,18 @@ class OledServer(socketserver.TCPServer):
     DEF_PORT_NUM = 12345
     allow_reuse_address = True
 
-    def __init__(self, worker, port_num=0):
-        self.worker	= worker
-
+    def __init__(self, handler, worker, port_num=0):
+        self.worker	= worker()
+        self.worker.start()
+        logger.debug('%s> worker:%s', __class__.__name__, worker.__name__)
+        
         self.port_num	= port_num
         if self.port_num == 0:
             self.port_num = __class__.DEF_PORT_NUM
         logger.info('%s> port=%d', __class__.__name__, self.port_num)
-        
-        return super().__init__(('', self.port_num), OledHandler)
+
+        logger.debug('%s> handler:%s', __class__.__name__, handler.__name__)
+        return super().__init__(('', self.port_num), handler)
 
     def __del__(self):
         global continueToServe
@@ -227,13 +247,9 @@ def main(port):
     global continueToServe
     continueToServe = True
 
-    worker = OledWorker()
-    worker.start()
-    logger.debug('main> worker started: port=%d', port)
-
     try:
         logger.debug('main> port=%d', port)
-        server = OledServer(worker, port)
+        server = OledServer(OledHandler, OledWorker, port)
 
     except Exception as e:
         logger.error('main> Exception %s %s', type(e), e)
@@ -247,8 +263,6 @@ def main(port):
     except KeyboardInterrupt:
         logger.warn('main> == Interrupted ==')
 
-    if worker.is_alive():
-        worker.end()
     return
 
 #####
