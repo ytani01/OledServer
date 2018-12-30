@@ -1,4 +1,4 @@
 BINDIR=/home/pi/bin
 LOGDIR=/home/pi/tmp
 
-@reboot		sleep 10; ${BINDIR}/boot-OLEDd.sh > ${LOGDIR}/boot.log 2>&1 &
+@reboot		sleep 10; ${BINDIR}/boot-OledServer.sh > ${LOGDIR}/boot-OledServer.log 2>&1 &

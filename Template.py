@@ -12,7 +12,8 @@ handler = StreamHandler()
 handler.setLevel(DEBUG)
 logger.setLevel(DEBUG)
 #handler_fmt = Formatter('%(asctime)s %(name)s %(levelname)s %(message)s')
-handler_fmt = Formatter('[%(levelname)s] %(message)s')
+handler_fmt = Formatter('%(asctime)s %(levelname)s %(funcName)s> %(message)s',
+                        datefmt='%H:%M:%S')
 handler.setFormatter(handler_fmt)
 logger.addHandler(handler)
 logger.propagate = False
