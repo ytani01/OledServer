@@ -8,7 +8,7 @@ import threading
 import queue
 import socketserver
 import click
-from MisakiFont import MisakiFont
+from OledMisakiFont import OledMisakiFont
 
 from logging import getLogger, StreamHandler, Formatter, DEBUG, INFO, WARN
 logger = getLogger(__name__)
@@ -32,10 +32,10 @@ logger.propagate = False
 class OledWorker(threading.Thread):
     CMD_PREFIX = '@@@'
     
-    def __init__(self):
+    def __init__(self, header=0, footer=0):
         self.msgq = queue.Queue()
 
-        self.misakifont = MisakiFont()
+        self.misakifont = OledMisakiFont(headerlines=header, footerlines=footer)
         self.zenkakuflag = False
         super().__init__()
 
@@ -90,6 +90,12 @@ class OledWorker(threading.Thread):
                         if cmd == 'zenkaku_off':
                             self.misakifont.set_zenkaku_flag(False)
                             continue
+                        if cmd == 'body':
+                            self.misakifont.set_part(cmd)
+                        if cmd == 'header':
+                            self.misakifont.set_part(cmd)
+                        if cmd == 'footer':
+                            self.misakifont.set_part(cmd)
                         if cmd == 'clear':
                             self.misakifont.clear()
                             continue
@@ -221,8 +227,8 @@ class OledServer(socketserver.TCPServer):
     DEF_PORT_NUM = 12345
     allow_reuse_address = True
 
-    def __init__(self, handler, worker, port_num=0):
-        self.worker	= worker()
+    def __init__(self, handler, worker, port_num=0, header=0, footer=0):
+        self.worker	= worker(header, footer)
         self.worker.start()
         logger.debug('%s> worker:%s', __class__.__name__, worker.__name__)
         
@@ -241,15 +247,19 @@ class OledServer(socketserver.TCPServer):
 
 #####
 @click.command(help='OLED display server')
-@click.option('--port', '-p', type=int, default=0,
+@click.option('--port',   '-p', 'port',   type=int, default=0,
               help='port number')
-def main(port):
+@click.option('--header', '-h', 'header', type=int, default=0,
+              help='header lines')
+@click.option('--footer', '-f', 'footer', type=int, default=0,
+              help='footer lines')
+def main(port, header, footer):
     global continueToServe
     continueToServe = True
 
     try:
         logger.debug('main> port=%d', port)
-        server = OledServer(OledHandler, OledWorker, port)
+        server = OledServer(OledHandler, OledWorker, port, header, footer)
 
     except Exception as e:
         logger.error('main> Exception %s %s', type(e), e)
