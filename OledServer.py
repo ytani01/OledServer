@@ -12,11 +12,11 @@ from OledMisakiFont import OledMisakiFont
 
 from logging import getLogger, StreamHandler, Formatter, DEBUG, INFO, WARN
 logger = getLogger(__name__)
+logger.setLevel(DEBUG)
 handler = StreamHandler()
 handler.setLevel(DEBUG)
-logger.setLevel(DEBUG)
-#handler_fmt = Formatter('%(asctime)s %(name)s %(levelname)s %(message)s')
-handler_fmt = Formatter('[%(levelname)s] %(message)s')
+handler_fmt = Formatter('%(asctime)s %(levelname)s %(funcName)s> %(message)s',
+                        datefmt='%H:%M:%S')
 handler.setFormatter(handler_fmt)
 logger.addHandler(handler)
 logger.propagate = False
@@ -78,28 +78,30 @@ class OledWorker(threading.Thread):
             #
             # main work
             #
-            cmd_list = msg_content.split()
-            if len(cmd_list) > 0:
-                if cmd_list.pop(0) == __class__.CMD_PREFIX:
-                    logger.debug('%s> recv special command: %s',
-                                 __class__.__name__, cmd_list)
-                    for cmd in cmd_list:
-                        if cmd == 'zenkaku_on':
-                            self.misakifont.set_zenkaku_flag(True)
-                            continue
-                        if cmd == 'zenkaku_off':
-                            self.misakifont.set_zenkaku_flag(False)
-                            continue
-                        if cmd == 'body':
-                            self.misakifont.set_part(cmd)
-                        if cmd == 'header':
-                            self.misakifont.set_part(cmd)
-                        if cmd == 'footer':
-                            self.misakifont.set_part(cmd)
-                        if cmd == 'clear':
-                            self.misakifont.clear()
-                            continue
-                    continue
+            args = msg_content.split()
+            if len(args) > 0:
+                if args.pop(0) == __class__.CMD_PREFIX:
+                    cmd = args.pop(0)
+                    logger.debug('%s> recv special command: %s %s', __class__.__name__,
+                                 cmd, args)
+                    if cmd == 'zenkaku' and args[0] == 'on':
+                        self.misakifont.set_zenkaku_flag(True)
+                        continue
+                    if cmd == 'zenkaku' and args[0] == 'off':
+                        self.misakifont.set_zenkaku_flag(False)
+                        continue
+                    if cmd == 'body':
+                        self.misakifont.set_part(cmd)
+                        continue
+                    if cmd == 'header':
+                        self.misakifont.set_part(cmd)
+                        continue
+                    if cmd == 'footer':
+                        self.misakifont.set_part(cmd)
+                        continue
+                    if cmd == 'clear':
+                        self.misakifont.clear()
+                        continue
                 
             self.misakifont.println(msg_content)
 
@@ -243,7 +245,7 @@ class OledServer(socketserver.TCPServer):
     def __del__(self):
         global continueToServe
         continueToServer = False
-        logger.debug('%s> __del__()', __class__.__name__)
+        logger.debug('%s>', __class__.__name__)
 
 #####
 @click.command(help='OLED display server')
@@ -258,20 +260,20 @@ def main(port, header, footer):
     continueToServe = True
 
     try:
-        logger.debug('main> port=%d', port)
+        logger.debug('port=%d', port)
         server = OledServer(OledHandler, OledWorker, port, header, footer)
 
     except Exception as e:
-        logger.error('main> Exception %s %s', type(e), e)
+        logger.error('Exception %s %s', type(e), e)
         continueToServe = False
 
     try:
         while continueToServe:
             server.handle_request()
-            logger.debug('main> handle_request() done')
+            logger.debug('handle_request() done')
 
     except KeyboardInterrupt:
-        logger.warn('main> == Interrupted ==')
+        logger.warn('== Interrupted ==')
 
     return
 
