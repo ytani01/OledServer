@@ -115,66 +115,88 @@ class OledClient:
         return self.send('%s crlf %s' % (__class__.CMD_PREFIX, flag))
 
 #####
+def time_mode(host, port, sec):
+    count = 0
+    while True:
+        count += 1
+        print('count=%d' % count)
+        with OledClient(host, port) as oc:
+            oc.set_part('header')
+            oc.set_row(0)
+            oc.set_crlf(True)
+            oc.zenkaku(True)
+            oc.print('@DATE@')
+            oc.print('%s [%d]' % ('@TIME@', count))
+
+        time.sleep(sec)
+
+#####
 @click.command(help='OLED client')
 @click.argument('text', type=str, default='')
-@click.option('--host', '-h', type=str, default=OledClient.DEF_HOST,
+@click.option('--host', '-h', 'host', type=str, default=OledClient.DEF_HOST,
               help='hostname or IP address')
-@click.option('--port', '-p', type=int, default=OledClient.DEF_PORT,
+@click.option('--port', '-p', 'port', type=int, default=OledClient.DEF_PORT,
               help='port number')
-@click.option('--debug', '-d', is_flag=True, default=False,
+@click.option('--timemode', '-t', 'timemode', type=int, default=0,
+              help='time client mode')
+@click.option('--debug', '-d', 'debug', is_flag=True, default=False,
               help='debug flag')
-def main(text, host, port, debug):
+def main(text, host, port, timemode, debug):
     logger.setLevel(INFO)
     if debug:
         logger.setLevel(DEBUG)
 
+    if timemode > 0:
+        time_mode(host, port, timemode)
+        sys.exit(0)
+        
     if text == '':
         text = 'Hello, world !'
     logger.debug('text=%s', text)
         
     ### open/close
-    cl = OledClient()
-    cl.open(host, port)
-    cl.set_part('body')
-    cl.clear()
-    cl.set_row(1)
-    cl.zenkaku(False)
-    cl.print(text)
-    cl.zenkaku(True)
-    cl.print(text)
-    cl.close()
+    oc = OledClient()
+    oc.open(host, port)
+    oc.set_part('body')
+    oc.clear()
+    oc.set_row(1)
+    oc.zenkaku(False)
+    oc.print(text)
+    oc.zenkaku(True)
+    oc.print(text)
+    oc.close()
 
     #time.sleep(2)
     
     ### with .. as ..
     ip = ipaddr().ip_addr()
-    with OledClient(host, port) as cl:
-        #cl.set_part('body')
-        #cl.clear()
+    with OledClient(host, port) as oc:
+        #oc.set_part('body')
+        #oc.clear()
 
-        cl.set_part('header')
-        cl.set_row(0)
-        cl.set_crlf(True)
-        cl.zenkaku(True)
-        cl.print('@DATE@')
-        cl.zenkaku(True)
-        cl.print('@TIME@')
-        #cl.print('@IFNAME@ @IPADDR@')
+        oc.set_part('header')
+        oc.set_row(0)
+        oc.set_crlf(True)
+        oc.zenkaku(True)
+        oc.print('@DATE@')
+        oc.zenkaku(True)
+        oc.print('@TIME@')
+        #oc.print('@IFNAME@ @IPADDR@')
 
-        cl.set_part('footer')
-        cl.set_row(0)
-        cl.set_crlf(False)
-        cl.zenkaku(True)
-        cl.print('@IPADDR@')
+        oc.set_part('footer')
+        oc.set_row(0)
+        oc.set_crlf(False)
+        oc.zenkaku(True)
+        oc.print('@IPADDR@')
 
-        cl.set_part('body')
-        cl.set_crlf(True)
+        oc.set_part('body')
+        oc.set_crlf(True)
         for i in range(3):
-            cl.clear()
-            cl.zenkaku(False)
-            cl.print('ABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞ')
-            cl.zenkaku(True)
-            cl.print(ip)
+            oc.clear()
+            oc.zenkaku(False)
+            oc.print('ABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞ')
+            oc.zenkaku(True)
+            oc.print(ip)
         
 if __name__ == '__main__':
     main()

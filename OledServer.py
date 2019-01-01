@@ -62,7 +62,9 @@ class OledWorker(threading.Thread):
         return self.msgq.empty()
 
     def end(self):
+        logger.debug('%s', __class__.__name__)
         self.send_cmd('end')
+        logger.debug('%s join(): waiting', __class__.__name__)
         self.join()
 
     def run(self):
@@ -73,7 +75,8 @@ class OledWorker(threading.Thread):
             msg_type, msg_content = self.recv()
 
             if msg_type == 'cmd' and msg_content == 'end':
-                logger.debug('%s> recv end cmd', __class__.__name__)
+                logger.debug('%s> recv (%s:%s)',
+                             __class__.__name__, msg_type, msg_content)
                 break
 
             #
@@ -261,8 +264,10 @@ class OledServer(socketserver.TCPServer):
 
     def __del__(self):
         global continueToServe
-        continueToServer = False
+
         logger.debug('%s>', __class__.__name__)
+        continueToServer = False
+        self.worker.end()
 
 #####
 @click.command(help='OLED display server')
