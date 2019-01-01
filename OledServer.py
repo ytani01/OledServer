@@ -8,11 +8,12 @@ import threading
 import queue
 import socketserver
 import click
-from OledMisakiFont import OledMisakiFont
+from OledText import OledText
+from ipaddr import ipaddr
 
 from logging import getLogger, StreamHandler, Formatter, DEBUG, INFO, WARN
 logger = getLogger(__name__)
-logger.setLevel(DEBUG)
+logger.setLevel(INFO)
 handler = StreamHandler()
 handler.setLevel(DEBUG)
 handler_fmt = Formatter('%(asctime)s %(levelname)s %(funcName)s> %(message)s',
@@ -35,12 +36,12 @@ class OledWorker(threading.Thread):
     def __init__(self, header=0, footer=0):
         self.msgq = queue.Queue()
 
-        self.misakifont = OledMisakiFont(headerlines=header, footerlines=footer)
+        self.ot = OledText(headerlines=header, footerlines=footer)
         self.zenkakuflag = False
         super().__init__()
 
     def set_zenkaku(self, flag):
-        self.misakifont.set_zenkaku_flag(flag)
+        self.ot.set_zenkaku(flag)
         
     def send(self, msg_type, msg_text):
         msg = {'type': msg_type, 'content': msg_text}
@@ -84,26 +85,42 @@ class OledWorker(threading.Thread):
                     cmd = args.pop(0)
                     logger.debug('%s> recv special command: %s %s', __class__.__name__,
                                  cmd, args)
-                    if cmd == 'zenkaku' and args[0] == 'on':
-                        self.misakifont.set_zenkaku_flag(True)
+                    if cmd == 'zenkaku':
+                        self.ot.set_zenkaku(True)
+                        if len(args) > 0:
+                            if args[0] == 'False':
+                                self.ot.set_zenkaku(False)
                         continue
-                    if cmd == 'zenkaku' and args[0] == 'off':
-                        self.misakifont.set_zenkaku_flag(False)
+                    if cmd == 'crlf':
+                        self.ot.set_crlf(True)
+                        if len(args) > 0:
+                            if args[0] == 'False':
+                                self.ot.set_crlf(False)
                         continue
+                    if cmd == 'row':
+                        if len(args) > 0:
+                            self.ot.set_row(int(args[0]))
+                            continue
                     if cmd == 'body':
-                        self.misakifont.set_part(cmd)
+                        self.ot.set_part(cmd)
                         continue
                     if cmd == 'header':
-                        self.misakifont.set_part(cmd)
+                        self.ot.set_part(cmd)
                         continue
                     if cmd == 'footer':
-                        self.misakifont.set_part(cmd)
+                        self.ot.set_part(cmd)
                         continue
                     if cmd == 'clear':
-                        self.misakifont.clear()
+                        self.ot.clear()
                         continue
                 
-            self.misakifont.println(msg_content)
+            # server variable
+            msg_content = msg_content.replace('@DATE@', time.strftime('%Y/%m/%d(%a)'))
+            msg_content = msg_content.replace('@TIME@', time.strftime('%H:%M:%S'))
+            msg_content = msg_content.replace('@IFNAME@', ipaddr().if_name())
+            msg_content = msg_content.replace('@IPADDR@', ipaddr().ip_addr())
+
+            self.ot.print(msg_content)
 
             time.sleep(0.01)
             
@@ -190,14 +207,14 @@ class OledHandler(socketserver.StreamRequestHandler):
                 logger.error('%s> ConnectionResetError', __class__.__name__)
                 break
             except KeyboardInterrupt:
-                logger.error('%s> KeyboardInterrupt', __class__.__name__)
+                logger.warn('%s> KeyboardInterrupt', __class__.__name__)
                 continueToServe = False
                 break
 
             #logger.debug('%s> net_data: \n%s', __class__.__name__, net_data)
             
             if len(net_data) == 0:
-                logger.debug('%s> Connection closed', __class__.__name__)
+                logger.info('%s> Connection closed', __class__.__name__)
                 break
 
             if not self.server.worker.is_alive():
@@ -255,9 +272,15 @@ class OledServer(socketserver.TCPServer):
               help='header lines')
 @click.option('--footer', '-f', 'footer', type=int, default=0,
               help='footer lines')
-def main(port, header, footer):
+@click.option('--debug', '-d', 'debug', is_flag=True, default=False,
+              help='debug flag')
+def main(port, header, footer, debug):
     global continueToServe
     continueToServe = True
+
+    logger.setLevel(INFO)
+    if debug:
+        logger.setLevel(DEBUG)
 
     try:
         logger.debug('port=%d', port)

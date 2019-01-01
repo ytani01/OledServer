@@ -6,6 +6,7 @@ import telnetlib
 import sys
 import time
 import click
+from ipaddr import ipaddr
 
 from logging import getLogger, StreamHandler, Formatter, DEBUG, INFO, WARN
 logger = getLogger(__name__)
@@ -95,17 +96,23 @@ class OledClient:
             return False
         return True
 
-    def println(self, text):
+    def print(self, text):
         return self.send(text)
 
     def clear(self):
         return self.send('%s clear' % __class__.CMD_PREFIX)
 
-    def zenkaku(self, flag):
-        if flag:
-            return self.send('%s zenkaku_on' % __class__.CMD_PREFIX)
-        else:
-            return self.send('%s zenkaku_off' % __class__.CMD_PREFIX)
+    def zenkaku(self, flag=True):
+        return self.send('%s zenkaku %s' % (__class__.CMD_PREFIX, flag))
+
+    def set_part(self, part='body'):
+        return self.send('%s %s' % (__class__.CMD_PREFIX, part))
+
+    def set_row(self, row=0):
+        return self.send('%s row %d' % (__class__.CMD_PREFIX, row))
+
+    def set_crlf(self, flag=True):
+        return self.send('%s crlf %s' % (__class__.CMD_PREFIX, flag))
 
 #####
 @click.command(help='OLED client')
@@ -125,24 +132,49 @@ def main(text, host, port, debug):
         text = 'Hello, world !'
     logger.debug('text=%s', text)
         
-    ### with .. as ..
-    with OledClient(host, port) as cl:
-        cl.clear()
-        cl.zenkaku(False)
-        cl.println(text)
-        cl.zenkaku(True)
-        cl.println(text)
-
-    time.sleep(2)
-    
     ### open/close
     cl = OledClient()
     cl.open(host, port)
+    cl.set_part('body')
     cl.clear()
-    cl.println(text)
+    cl.set_row(1)
     cl.zenkaku(False)
-    cl.println(text)
+    cl.print(text)
+    cl.zenkaku(True)
+    cl.print(text)
     cl.close()
 
+    #time.sleep(2)
+    
+    ### with .. as ..
+    ip = ipaddr().ip_addr()
+    with OledClient(host, port) as cl:
+        #cl.set_part('body')
+        #cl.clear()
+
+        cl.set_part('header')
+        cl.set_row(0)
+        cl.set_crlf(True)
+        cl.zenkaku(True)
+        cl.print('@DATE@')
+        cl.zenkaku(True)
+        cl.print('@TIME@')
+        #cl.print('@IFNAME@ @IPADDR@')
+
+        cl.set_part('footer')
+        cl.set_row(0)
+        cl.set_crlf(False)
+        cl.zenkaku(True)
+        cl.print('@IPADDR@')
+
+        cl.set_part('body')
+        cl.set_crlf(True)
+        for i in range(3):
+            cl.clear()
+            cl.zenkaku(False)
+            cl.print('ABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞ')
+            cl.zenkaku(True)
+            cl.print(ip)
+        
 if __name__ == '__main__':
     main()

@@ -10,7 +10,8 @@ ENVBIN=${ENVDIR}/bin
 LOGFILE=${LOGDIR}/${MYNAME}.log
 
 CMDNAME="OledServer.py"
-CMD=${BINDIR}/${CMDNAME}
+OPT="-h 2 -f 1"
+CMD="${BINDIR}/${CMDNAME} ${OPT}"
 
 if [ -x ${ENVBIN}/${CMDNAME} ]; then
     CMD=${ENVBIN}/${CMDNAME}
