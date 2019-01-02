@@ -117,11 +117,14 @@ class OledWorker(threading.Thread):
                         self.ot.clear()
                         continue
                 
-            # server variable
+            # server side variable
             msg_content = msg_content.replace('@DATE@', time.strftime('%Y/%m/%d(%a)'))
             msg_content = msg_content.replace('@TIME@', time.strftime('%H:%M:%S'))
             msg_content = msg_content.replace('@IFNAME@', ipaddr().if_name())
             msg_content = msg_content.replace('@IPADDR@', ipaddr().ip_addr())
+            for ch in 'YmdaHMS':
+                msg_content = msg_content.replace('@' + ch + '@',
+                                                  time.strftime('%' + ch))
 
             self.ot.print(msg_content)
 

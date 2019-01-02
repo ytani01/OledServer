@@ -14,7 +14,7 @@ logger.setLevel(DEBUG)
 console_handler = StreamHandler()
 console_handler.setLevel(DEBUG)
 #handler_fmt = Formatter('%(asctime)s %(name)s %(levelname)s %(message)s')
-handler_fmt = Formatter('%(asctime)s %(levelname)s %(funcName)s> %(message)s',
+handler_fmt = Formatter('%(asctime)s %(levelname)s %(funcName)s() %(message)s',
                         datefmt='%H:%M:%S')
 console_handler.setFormatter(handler_fmt)
 logger.addHandler(console_handler)
@@ -96,37 +96,44 @@ class OledClient:
             return False
         return True
 
-    def print(self, text):
-        return self.send(text)
-
     def clear(self):
         return self.send('%s clear' % __class__.CMD_PREFIX)
 
     def zenkaku(self, flag=True):
         return self.send('%s zenkaku %s' % (__class__.CMD_PREFIX, flag))
 
-    def set_part(self, part='body'):
+    def part(self, part='body'):
         return self.send('%s %s' % (__class__.CMD_PREFIX, part))
 
-    def set_row(self, row=0):
+    def row(self, row=0):
         return self.send('%s row %d' % (__class__.CMD_PREFIX, row))
 
-    def set_crlf(self, flag=True):
+    def crlf(self, flag=True):
         return self.send('%s crlf %s' % (__class__.CMD_PREFIX, flag))
 
 #####
-def time_mode(host, port, sec):
+def clock_mode(host, port, sec=2):
     count = 0
+    prev_str_time = ''
+    oc = OledClient()
     while True:
         count += 1
-        print('count=%d' % count)
-        with OledClient(host, port) as oc:
-            oc.set_part('header')
-            oc.set_row(0)
-            oc.set_crlf(True)
+        str_time = time.strftime('%H:%M')
+        logger.debug('count=%d, %s', count, str_time)
+
+        if str_time != prev_str_time:
+            prev_str_time = str_time
+            logger.info('update server time[%d] %s', count, str_time)
+
+            oc.open(host, port)
+            oc.part('header')
+            oc.crlf(False)
             oc.zenkaku(True)
-            oc.print('@DATE@')
-            oc.print('%s [%d]' % ('@TIME@', count))
+            oc.row(0)
+            oc.send('@DATE@')
+            oc.row(1)
+            oc.send('@H@:@M@')
+            oc.close()
 
         time.sleep(sec)
 
@@ -137,18 +144,22 @@ def time_mode(host, port, sec):
               help='hostname or IP address')
 @click.option('--port', '-p', 'port', type=int, default=OledClient.DEF_PORT,
               help='port number')
-@click.option('--timemode', '-t', 'timemode', type=int, default=0,
-              help='time client mode')
+@click.option('--clockmode', '-c', 'clockmode', is_flag=True, default=False,
+              help='clock client mode')
 @click.option('--debug', '-d', 'debug', is_flag=True, default=False,
               help='debug flag')
-def main(text, host, port, timemode, debug):
+def main(text, host, port, clockmode, debug):
     logger.setLevel(INFO)
     if debug:
         logger.setLevel(DEBUG)
 
-    if timemode > 0:
-        time_mode(host, port, timemode)
-        sys.exit(0)
+    if clockmode:
+        try:
+            clock_mode(host, port)
+        except Exception as e:
+            logger.info(e)
+            logger.info('exit(0)')
+            sys.exit(0)
         
     if text == '':
         text = 'Hello, world !'
@@ -157,13 +168,13 @@ def main(text, host, port, timemode, debug):
     ### open/close
     oc = OledClient()
     oc.open(host, port)
-    oc.set_part('body')
+    oc.part('body')
     oc.clear()
-    oc.set_row(1)
+    oc.row(1)
     oc.zenkaku(False)
-    oc.print(text)
+    oc.send(text)
     oc.zenkaku(True)
-    oc.print(text)
+    oc.send(text)
     oc.close()
 
     #time.sleep(2)
@@ -171,32 +182,32 @@ def main(text, host, port, timemode, debug):
     ### with .. as ..
     ip = ipaddr().ip_addr()
     with OledClient(host, port) as oc:
-        #oc.set_part('body')
+        #oc.part('body')
         #oc.clear()
 
-        oc.set_part('header')
-        oc.set_row(0)
-        oc.set_crlf(True)
+        oc.part('header')
+        oc.row(0)
+        oc.crlf(True)
         oc.zenkaku(True)
-        oc.print('@DATE@')
+        oc.send('@DATE@')
         oc.zenkaku(True)
-        oc.print('@TIME@')
-        #oc.print('@IFNAME@ @IPADDR@')
+        oc.send('@TIME@')
+        #oc.send('@IFNAME@ @IPADDR@')
 
-        oc.set_part('footer')
-        oc.set_row(0)
-        oc.set_crlf(False)
+        oc.part('footer')
+        oc.row(0)
+        oc.crlf(False)
         oc.zenkaku(True)
-        oc.print('@IPADDR@')
+        oc.send('@IPADDR@')
 
-        oc.set_part('body')
-        oc.set_crlf(True)
+        oc.part('body')
+        oc.crlf(True)
         for i in range(3):
             oc.clear()
             oc.zenkaku(False)
-            oc.print('ABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞ')
+            oc.send('ABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞ')
             oc.zenkaku(True)
-            oc.print(ip)
+            oc.send(ip)
         
 if __name__ == '__main__':
     main()
