@@ -115,25 +115,29 @@ class OledClient:
 def clock_mode(host, port, sec=2):
     count = 0
     prev_str_time = ''
-    oc = OledClient()
+    oc = OledClient(host, port)
     while True:
         count += 1
         str_time = time.strftime('%H:%M')
-        logger.debug('count=%d, %s', count, str_time)
+        logger.debug('count=%d, %s', count, time.strftime('%H:%M:%S'))
 
         if str_time != prev_str_time:
-            prev_str_time = str_time
             logger.info('update server time[%d] %s', count, str_time)
 
-            oc.open(host, port)
+            oc.open()
+
             oc.part('header')
             oc.crlf(False)
             oc.zenkaku(True)
+
             oc.row(0)
             oc.send('@DATE@')
             oc.row(1)
             oc.send('@H@:@M@')
+
             oc.close()
+
+            prev_str_time = str_time
 
         time.sleep(sec)
 
@@ -184,15 +188,6 @@ def main(text, host, port, clockmode, debug):
     with OledClient(host, port) as oc:
         #oc.part('body')
         #oc.clear()
-
-        oc.part('header')
-        oc.row(0)
-        oc.crlf(True)
-        oc.zenkaku(True)
-        oc.send('@DATE@')
-        oc.zenkaku(True)
-        oc.send('@TIME@')
-        #oc.send('@IFNAME@ @IPADDR@')
 
         oc.part('footer')
         oc.row(0)
