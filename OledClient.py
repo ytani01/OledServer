@@ -112,7 +112,7 @@ class OledClient:
         return self.send('%s crlf %s' % (__class__.CMD_PREFIX, flag))
 
 #####
-def clock_mode(host, port, sec=2):
+def clock_mode(host, port, myip, sec=2):
     count = 0
     prev_str_time = ''
     oc = OledClient(host, port)
@@ -126,15 +126,26 @@ def clock_mode(host, port, sec=2):
 
             oc.open()
 
+            # header
             oc.part('header')
             oc.crlf(False)
-            oc.zenkaku(True)
-
+            oc.zenkaku(False)
             oc.row(0)
-            oc.send('@DATE@')
+            oc.send('@DATE@  @H@:@M@')
+            oc.zenkaku(True)
             oc.row(1)
-            oc.send('@H@:@M@')
+            oc.send(myip)
 
+            # footer
+            oc.part('footer')
+            oc.crlf(False)
+            oc.zenkaku(True)
+            oc.row(0)
+            oc.send(myip)
+            
+            # body
+            oc.part('body')
+            oc.crlf(True)
             oc.close()
 
             prev_str_time = str_time
@@ -157,9 +168,11 @@ def main(text, host, port, clockmode, debug):
     if debug:
         logger.setLevel(DEBUG)
 
+    myip = ipaddr().ip_addr()
+
     if clockmode:
         try:
-            clock_mode(host, port)
+            clock_mode(host, port, myip)
         except Exception as e:
             logger.info(e)
             logger.info('exit(0)')
@@ -184,7 +197,6 @@ def main(text, host, port, clockmode, debug):
     #time.sleep(2)
     
     ### with .. as ..
-    ip = ipaddr().ip_addr()
     with OledClient(host, port) as oc:
         #oc.part('body')
         #oc.clear()
@@ -202,7 +214,7 @@ def main(text, host, port, clockmode, debug):
             oc.zenkaku(False)
             oc.send('ABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞ')
             oc.zenkaku(True)
-            oc.send(ip)
+            oc.send(myip)
         
 if __name__ == '__main__':
     main()

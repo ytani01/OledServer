@@ -7,7 +7,7 @@ MISAKI_FONT=MisakiFont.py
 BINDIR=${HOME}/bin
 LOGDIR=${HOME}/tmp
 
-PKGS="i2c-tools"
+PKGS="i2c-tools libjpeg-dev"
 
 if [ ! -x ${MISAKI_FONT} ]; then
     echo "${MISAKI_FONT}: no such file"

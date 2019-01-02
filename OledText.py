@@ -245,16 +245,19 @@ class OledText:
             logger.debug('part=%-6s', part)
         if self.rows[part] < 1:
             return
-        
+
         if crlf == None:
             crlf = self.crlf
             logger.debug('crlf=%s', crlf)
 
         # 事前に、必要に応じてスクロール処理
         if self.cur_row[part] > self.rows[part] - 1:
-            self.cur_row[part] = self.rows[part] - 1
-            self.text[part].pop(0)
-            self.text[part].append('')
+            if crlf:
+                self.cur_row[part] = self.rows[part] - 1
+                self.text[part].pop(0)
+                self.text[part].append('')
+            else:
+                return
 
         # 1行分出力
         self.text[part][self.cur_row[part]] = text
