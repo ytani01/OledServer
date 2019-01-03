@@ -176,8 +176,8 @@ def main(text, host, port, clockmode, debug):
         try:
             clock_mode(host, port, myip)
         except Exception as e:
-            logger.info(e)
-            logger.info('exit(0)')
+            logger.error(e)
+            logger.warn('exit(0)')
             sys.exit(0)
         
     if text == '':
