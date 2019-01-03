@@ -128,6 +128,7 @@ def clock_mode(host, port, myip, sec=2):
 
             # header
             oc.part('header')
+            oc.clear()
             oc.crlf(False)
             oc.zenkaku(False)
             oc.row(0)
@@ -138,6 +139,7 @@ def clock_mode(host, port, myip, sec=2):
 
             # footer
             oc.part('footer')
+            oc.clear()
             oc.crlf(False)
             oc.zenkaku(True)
             oc.row(0)
