@@ -38,9 +38,6 @@ class OledClient:
         logger.debug('(\'%s\',%d): self.host=\'%s\', self.port=%d',
                      host, port, self.host, self.port)
 
-    def __del__(self):
-        logger.debug('()')
-
     # for 'with' statement
     def __enter__(self):
         logger.debug('()')
