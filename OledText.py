@@ -41,6 +41,9 @@ class OledText:
 
         self.crlf = True
 
+        self.trans_tbl = str.maketrans('　．、，’”｀：；（）［］＃＄％＆＠￥',
+                                       ' .､,\'\"`:;()[]#$%&@\\')
+
         # initialize display
         self.disp = Adafruit_SSD1306.SSD1306_128_64(rst=self.rst)
         try:
@@ -286,7 +289,7 @@ class OledText:
             return
 
         if self.zenkaku_flag:
-            text = mojimoji.han_to_zen(text)
+            text = mojimoji.han_to_zen(text).translate(self.trans_tbl)
 
         # 長い行は折り返し
         # crlfがFalseの場合は、最初の1行だけ出力
@@ -322,7 +325,7 @@ class OledText:
 @click.command(help='OLED Text library')
 @click.option('--debug', '-d', 'debug', is_flag=True, default=False,
               help='debug flag')
-def main():
+def main(debug):
     logger.setLevel(INFO)
     if debug:
         logger.setLevel(DEBUG)
