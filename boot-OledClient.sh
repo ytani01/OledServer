@@ -10,7 +10,7 @@ ENVBIN=${ENVDIR}/bin
 LOGFILE=${LOGDIR}/${MYNAME}.log
 
 CMDNAME="OledClient.py"
-OPT="-c"
+OPT="-c 1"
 CMD="${BINDIR}/${CMDNAME} ${OPT}"
 
 if [ -x ${ENVBIN}/${CMDNAME} ]; then
