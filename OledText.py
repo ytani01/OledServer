@@ -33,6 +33,9 @@ FONT_PATH	= FONT_DIR + '/' + FONT_NAME
 #
 #
 class OledText:
+    TRANS_SRC = '　．、，－＋＊／’”｀：；（）［］＃＄％＆＠￥'
+    TRANS_DST = ' .､,-+*/\'\"`:;()[]#$%&@\\'
+
     def __init__(self, headerlines=0, footerlines=0, zenkaku=False, fontsize=8, rst=24):
         self.enable = True
         self.zenkaku_flag = zenkaku
@@ -41,8 +44,7 @@ class OledText:
 
         self.crlf = True
 
-        self.trans_tbl = str.maketrans('　．、，’”｀：；（）［］＃＄％＆＠￥',
-                                       ' .､,\'\"`:;()[]#$%&@\\')
+        self.trans_tbl = str.maketrans(__class__.TRANS_SRC, __class__.TRANS_DST)
 
         # initialize display
         self.disp = Adafruit_SSD1306.SSD1306_128_64(rst=self.rst)
