@@ -109,7 +109,7 @@ class OledClient:
         return self.send('%s crlf %s' % (__class__.CMD_PREFIX, flag))
 
 #####
-def clock_mode(host, port, myip, sec=2):
+def clock_mode(host, port, myip, mode=1, sec=2):
     count = 0
     prev_str_time = ''
     oc = OledClient(host, port)
@@ -125,22 +125,24 @@ def clock_mode(host, port, myip, sec=2):
 
             # header
             oc.part('header')
-            oc.clear()
+            #oc.clear()
             oc.crlf(False)
             oc.zenkaku(False)
             oc.row(0)
             oc.send('@DATE@  @H@:@M@')
-            oc.zenkaku(True)
-            oc.row(1)
-            oc.send(myip)
+            if mode == 1:
+                oc.zenkaku(True)
+                oc.row(1)
+                oc.send(myip)
 
             # footer
-            oc.part('footer')
-            oc.clear()
-            oc.crlf(False)
-            oc.zenkaku(True)
-            oc.row(0)
-            oc.send(myip)
+            if mode == 2:
+                oc.part('footer')
+                #oc.clear()
+                oc.crlf(False)
+                oc.zenkaku(True)
+                oc.row(0)
+                oc.send(myip)
             
             # body
             oc.part('body')
@@ -158,8 +160,8 @@ def clock_mode(host, port, myip, sec=2):
               help='hostname or IP address')
 @click.option('--port', '-p', 'port', type=int, default=OledClient.DEF_PORT,
               help='port number')
-@click.option('--clockmode', '-c', 'clockmode', is_flag=True, default=False,
-              help='clock client mode')
+@click.option('--clockmode', '-c', 'clockmode', type=int, default=0,
+              help='clock client mode (0:off)')
 @click.option('--debug', '-d', 'debug', is_flag=True, default=False,
               help='debug flag')
 def main(text, host, port, clockmode, debug):
@@ -169,9 +171,9 @@ def main(text, host, port, clockmode, debug):
 
     myip = ipaddr().ip_addr()
 
-    if clockmode:
+    if clockmode > 0:
         try:
-            clock_mode(host, port, myip)
+            clock_mode(host, port, myip, clockmode)
         except Exception as e:
             logger.error(e)
             logger.warn('exit(0)')

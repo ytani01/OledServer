@@ -252,12 +252,9 @@ class OledText:
 
         # 事前に、必要に応じてスクロール処理
         if self.cur_row[part] > self.rows[part] - 1:
-            if crlf:
-                self.cur_row[part] = self.rows[part] - 1
-                self.text[part].pop(0)
-                self.text[part].append('')
-            else:
-                return
+            self.cur_row[part] = self.rows[part] - 1
+            self.text[part].pop(0)
+            self.text[part].append('')
 
         # 1行分出力
         self.text[part][self.cur_row[part]] = text
