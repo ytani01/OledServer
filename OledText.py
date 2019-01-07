@@ -33,10 +33,12 @@ FONT_PATH	= FONT_DIR + '/' + FONT_NAME
 #
 #
 class OledText:
+    # 全角モードで半角に変換し直す文字
     TRANS_SRC = '　．、，－＋＊／’”｀：；（）［］＃＄％＆＠￥'
     TRANS_DST = ' .､,-+*/\'\"`:;()[]#$%&@\\'
 
-    def __init__(self, headerlines=0, footerlines=0, zenkaku=False, fontsize=8, rst=24):
+    def __init__(self, headerlines=0, footerlines=0, zenkaku=False,
+                 fontsize=8, rst=24):
         self.enable = True
         self.zenkaku_flag = zenkaku
         self.fontsize = fontsize
@@ -44,7 +46,8 @@ class OledText:
 
         self.crlf = True
 
-        self.trans_tbl = str.maketrans(__class__.TRANS_SRC, __class__.TRANS_DST)
+        self.trans_tbl = str.maketrans(__class__.TRANS_SRC,
+                                       __class__.TRANS_DST)
 
         # initialize display
         self.disp = Adafruit_SSD1306.SSD1306_128_64(rst=self.rst)
@@ -65,10 +68,10 @@ class OledText:
         self.disp.clear()
 
         # load font
-        self.font = ImageFont.truetype(FONT_PATH, self.fontsize, encoding='unic')
+        self.font = ImageFont.truetype(FONT_PATH, self.fontsize,
+                                       encoding='unic')
         (self.char_width, self.char_height) = self.font.getsize('８')
         self.char_height += 1
-
         
         # physical cols and rows
         self.disp_cols = int(self.disp.width  / self.char_width)
@@ -85,11 +88,38 @@ class OledText:
         self.disp.image(self.image)
         self.disp.display()
 
-    # clear display
-    def clear(self, part='', display=True):
-        if not self.enable:
-            return
+    # draw border
+    def _draw_border(self, width=2, display_now=False):
+        x1 = 0
+        x2 = self.disp.width - 1
 
+        # header
+        if self.rows['header'] > 0:
+            y1 = self.char_height * (self.rows['header'] + 0.5) - 1
+            self.draw.line([(x1, y1), (x2, y1)], fill=255, width=width)
+
+        # footer
+        if self.rows['footer'] > 0:
+            y1 = self.disp.height - \
+                 self.char_height * (self.rows['footer'] + 0.5) - 1
+            self.draw.line([(x1, y1), (x2, y1)], fill=255, width=width)
+
+        if display_now:
+            self._display()
+
+    def _clear(self, part=''):
+        if part == '':
+            part = self.cur_part
+
+        x1 = 0
+        y1 = self.char_height * self.start_row[part]
+        x2 = self.disp.width - 1
+        y2 = y1 + self.char_height * self.rows[part] - 1
+        self.draw.rectangle([(x1, y1), (x2, y2)], outline=0, fill=0)
+        logger.debug('clear rectangle (%d,%d),(%d,%d)', x1, y1, x2, y2)
+        
+    # clear display
+    def clear(self, part='', display_now=True):
         if part == '':
             part = self.cur_part
 
@@ -98,35 +128,15 @@ class OledText:
             self.text[part][i] = ''
         #self.cur_row[part] = 0
 
-        # clear image
-        x1, y1 = 0, self.char_height * self.start_row[part]
-        x2, y2 = self.disp.width - 1, self.char_height * self.rows[part] + y1 - 1
-        self.draw.rectangle([(x1, y1), (x2, y2)], outline=0, fill=0)
-        logger.debug('clear(%d,%d),(%d,%d)', x1, y1, x2, y2)
+        # clear part area
+        self._clear(part)
         
         # display
-        if display:
-            self._display()
-
-    # draw border
-    def _draw_border(self, width=2, display=False):
-        x1 = 0
-        x2 = self.disp.width - 1
-        if self.rows['header'] > 0:
-            y1 = self.char_height * (self.rows['header'] + 0.5) - 1
-            y2 = y1
-            self.draw.line([(x1, y1), (x2, y2)], fill=255, width=width)
-
-        if self.rows['footer'] > 0:
-            y1 = self.disp.height - self.char_height * (self.rows['footer'] + 0.5) - 1
-            y2 = y1
-            self.draw.line([(x1, y1), (x2, y2)], fill=255, width=width)
-
-        if display:
+        if display_now:
             self._display()
 
     # set header and footer
-    def set_layout(self, headerlines=0, footerlines=0, display=True):
+    def set_layout(self, headerlines=0, footerlines=0, display_now=True):
         if headerlines + footerlines + 2 > self.disp_rows:
             return False
 
@@ -158,9 +168,9 @@ class OledText:
         # display
         self._draw_border()
         for part in ['header', 'body', 'footer']:
-            self.clear(part, display=False)
+            self.clear(part, display_now=False)
 
-        if display:
+        if display_now:
             self._display()
             
         return True
@@ -172,6 +182,8 @@ class OledText:
 
         if part in self.rows.keys():
             self.cur_part = part
+        else:
+            return
 
         if row >= 0:
             self.set_row(row)
@@ -183,7 +195,7 @@ class OledText:
             self.set_crlf(crlf)
         
     # set part and row
-    def set_row(self, row=255, part=''):
+    def set_row(self, row, part=''):
         if part == '':
             part = self.cur_part
 
@@ -191,60 +203,37 @@ class OledText:
         self.cur_row[part] = row
     
     # set zenkaku_flag
-    def set_zenkaku(self, value, part=''):
-        if not self.enable:
-            return
-
-        if part == '':
-            part = self.cur_part
-
-        if value:
-            self.zenkaku_flag = True
-        else:
-            self.zenkaku_flag = False
+    def set_zenkaku(self, value):
+        self.zenkaku_flag = value
 
     # 改行設定
-    def set_crlf(self, crlf=None):
-        if not self.enable:
-            return
-        if crlf == None:
-            return
+    def set_crlf(self, value):
+        self.crlf=value
 
-        self.crlf=crlf
-
-    def _draw_1line(self, ph_row, text):
-        x1, y1 = 0, ph_row * self.char_height
+    #
+    def _draw_1line(self, disp_row, text):
+        x1, y1 = 0, disp_row * self.char_height
         self.draw.text((x1,y1), text, font=self.font, fill=255)
         logger.debug('draw.text(%d, %d)', x1, y1)
 
-    def _clear_1line(self, ph_row):
-        x1, y1 = 0, ph_row * self.char_height
-        x2, y2 = self.disp.width - 1, y1 + self.char_height - 1
-        self.draw.rectangle([(x1, y1), (x2, y2)], outline=0, fill=0)
-        logger.debug('clear rectangle (%d,%d),(%d,%d)', x1, y1, x2, y2)
-        
+    #
     def _draw_part(self, part=''):
         if part == '':
             part = self.cur_part
 
         # clear part area
-        x1, y1 = 0, self.char_height * self.start_row[part]
-        x2, y2 = self.disp.width - 1, y1 + self.char_height * self.rows[part] - 1
-        self.draw.rectangle([(x1, y1), (x2, y2)], outline=0, fill=0)
-        logger.debug('clear rectangle (%d,%d),(%d,%d)', x1, y1, x2, y2)
+        self._clear(part)
 
         # draw lines in current part
-        ph_row = self.start_row[part]
+        disp_row = self.start_row[part]
         for t in self.text[part]:
-            self._draw_1line(ph_row, t)
-            ph_row += 1
+            self._draw_1line(disp_row, t)
+            disp_row += 1
 
     # 1行分出力し、crlfフラグに応じてスクロール処理も行う
     def _print_1line(self, text, part='', crlf=None):
-        if not self.enable:
-            return
-
         logger.debug('part=%-6s crlf=%s text=\'%s\'', part, crlf, text)
+
         if part == '':
             part = self.cur_part
             logger.debug('part=%-6s', part)
