@@ -110,7 +110,7 @@ class ProcMon:
                 if n > 0:
                     s = '*'
                 else:
-                    s = '-'
+                    s = ' '
             else:
                 if n >= 10 :
                     s = '+'
@@ -129,9 +129,9 @@ class ProcMon:
         
         with OledClient(self.oled_server, self.oled_port) as ol:
             ol.part('body')
+            #ol.row(0)
             ol.crlf(True)
             ol.zenkaku(True)
-            #ol.row(0)
             #ol.clear()
             for l in self.get_statline(sym):
                 ol.send(l)
@@ -144,7 +144,7 @@ class ProcMon:
                 if n > 0:
                     out_str += '*'
                 else:
-                    out_str += '-'
+                    out_str += ' '
             else:
                 if n >= 10:
                     out_str += '+'
