@@ -10,7 +10,7 @@ from ipaddr import ipaddr
 
 from logging import getLogger, StreamHandler, Formatter, DEBUG, INFO, WARN
 logger = getLogger(__name__)
-logger.setLevel(DEBUG)
+logger.setLevel(INFO)
 console_handler = StreamHandler()
 console_handler.setLevel(DEBUG)
 #handler_fmt = Formatter('%(asctime)s %(name)s %(levelname)s %(message)s')
