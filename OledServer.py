@@ -70,12 +70,10 @@ class OledWorker(threading.Thread):
     def run(self):
         while True:
             if self.msg_empty():
+                self.ot._display(True)
                 logger.debug('%s> wait msg ..', __class__.__name__)
 
             msg_type, msg_content = self.recv()
-            disp_now = False
-            if self.msg_empty():
-                disp_now = True
 
             if msg_type == 'cmd' and msg_content == 'end':
                 logger.debug('%s> recv (%s:%s)',
@@ -118,7 +116,7 @@ class OledWorker(threading.Thread):
                         self.ot.set_part(cmd)
                         continue
                     if cmd == 'clear':
-                        self.ot.clear(display_now=disp_now)
+                        self.ot.clear(display_now=False)
                         continue
                 
             # server side variable
@@ -132,7 +130,7 @@ class OledWorker(threading.Thread):
                 msg_content = msg_content.replace('@' + ch + '@',
                                                   time.strftime('%' + ch))
 
-            self.ot.print(msg_content, display_now=disp_now)
+            self.ot.print(msg_content, display_now=False)
 
             time.sleep(0.01)
             
