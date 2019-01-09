@@ -118,7 +118,7 @@ class OledWorker(threading.Thread):
                         self.ot.set_part(cmd)
                         continue
                     if cmd == 'clear':
-                        self.ot.clear(diplay_now=disp_now)
+                        self.ot.clear(display_now=disp_now)
                         continue
                 
             # server side variable
