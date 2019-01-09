@@ -84,9 +84,10 @@ class OledText:
             return None
 
     # output physical display
-    def _display(self):
-        self.disp.image(self.image)
-        self.disp.display()
+    def _display(self, display_now=True):
+        if display_now:
+            self.disp.image(self.image)
+            self.disp.display()
 
     # draw border
     def _draw_border(self, width=2, display_now=False):
@@ -104,8 +105,7 @@ class OledText:
                  self.char_height * (self.rows['footer'] + 0.5) - 1
             self.draw.line([(x1, y1), (x2, y1)], fill=255, width=width)
 
-        if display_now:
-            self._display()
+        self._display(display_now)
 
     def _clear(self, part=''):
         if part == '':
@@ -132,8 +132,7 @@ class OledText:
         self._clear(part)
         
         # display
-        if display_now:
-            self._display()
+        self._display(display_now)
 
     # set header and footer
     def set_layout(self, headerlines=0, footerlines=0, display_now=True):
@@ -170,8 +169,7 @@ class OledText:
         for part in ['header', 'body', 'footer']:
             self.clear(part, display_now=False)
 
-        if display_now:
-            self._display()
+        self._display(display_now)
             
         return True
 
@@ -262,10 +260,7 @@ class OledText:
             self.cur_row[part] += 1
 
     # 長い行を折り返して出力する。必要に応じてスクロールも行う。
-    def print(self, text, part='', crlf=None):
-        if not self.enable:
-            return
-
+    def print(self, text, part='', crlf=None, display_now=True):
         logger.debug('part=%-6s crlf=%s text=\'%s\'', part, crlf, text)
         if part == '':
             part = self.cur_part
@@ -310,7 +305,7 @@ class OledText:
             self._print_1line(line, part=part, crlf=crlf)
         
         # display OLED
-        self._display()
+        self._display(display_now)
         
 #####
 @click.command(help='OLED Text library')

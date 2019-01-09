@@ -73,6 +73,9 @@ class OledWorker(threading.Thread):
                 logger.debug('%s> wait msg ..', __class__.__name__)
 
             msg_type, msg_content = self.recv()
+            disp_now = False
+            if self.msg_empty():
+                disp_now = True
 
             if msg_type == 'cmd' and msg_content == 'end':
                 logger.debug('%s> recv (%s:%s)',
@@ -86,7 +89,8 @@ class OledWorker(threading.Thread):
             if len(args) > 0:
                 if args.pop(0) == __class__.CMD_PREFIX:
                     cmd = args.pop(0)
-                    logger.debug('%s> recv special command: %s %s', __class__.__name__,
+                    logger.debug('%s> recv special command: %s %s',
+                                 __class__.__name__,
                                  cmd, args)
                     if cmd == 'zenkaku':
                         self.ot.set_zenkaku(True)
@@ -114,19 +118,21 @@ class OledWorker(threading.Thread):
                         self.ot.set_part(cmd)
                         continue
                     if cmd == 'clear':
-                        self.ot.clear()
+                        self.ot.clear(diplay_now=disp_now)
                         continue
                 
             # server side variable
-            msg_content = msg_content.replace('@DATE@', time.strftime('%Y/%m/%d(%a)'))
-            msg_content = msg_content.replace('@TIME@', time.strftime('%H:%M:%S'))
+            msg_content = msg_content.replace('@DATE@',
+                                              time.strftime('%Y/%m/%d(%a)'))
+            msg_content = msg_content.replace('@TIME@',
+                                              time.strftime('%H:%M:%S'))
             msg_content = msg_content.replace('@IFNAME@', ipaddr().if_name())
             msg_content = msg_content.replace('@IPADDR@', ipaddr().ip_addr())
             for ch in 'YmdaHMS':
                 msg_content = msg_content.replace('@' + ch + '@',
                                                   time.strftime('%' + ch))
 
-            self.ot.print(msg_content)
+            self.ot.print(msg_content, display_now=disp_now)
 
             time.sleep(0.01)
             
