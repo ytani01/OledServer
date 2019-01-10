@@ -54,6 +54,7 @@ class ProcMon:
 
         # returncode == 0
         self.stdout = [l.split() for l in out.splitlines()]
+        #logger.debug('self.stdout=%s', self.stdout)
         self.stdout.pop(0)	# ignore first line
         self.psout = []
         for l in self.stdout:
@@ -67,19 +68,24 @@ class ProcMon:
                 continue
             self.psout.append({'pid':pid, 'cpu':cpu, 'mem':mem, 'time':tm,
                                'cmd':cmd})
-        #logger.debug(self.psout)
+        #logger.debug('psout=%s', self.psout)
 
         self.find_list = {}
         if len(self.keyword) > 0:
             for k in self.keyword:
                 self.find_list[k] = []
             for l in self.psout:
-                for k in keyword:
-                    if re.search(k, l['cmd']):
+                for k in self.keyword:
+                    [key_str, disp_str] = [k, k]
+                    if ':' in k:
+                        key_str, disp_str = k.split(':')
+                        
+                    if re.search(key_str, l['cmd']):
                         self.find_list[k].append(l)
                         break
         else:
             self.find_list[''] = list(self.psout)
+        logger.debug('find_list=%s', self.find_list)
 
     def __enter__(self):
         self.open()
@@ -97,8 +103,11 @@ class ProcMon:
     
     def print_list(self):
         for k in self.find_list.keys():
+            [key_str, disp_str] = [k, k]
+            if ':' in k:
+                key_str, disp_str = k.split(':')
             for l in self.find_list[k]:
-                print('\'%s\' [%5d,%.2f,%.2f]: %s' % (k, l['pid'],
+                print('\'%s\' [%5d,%.2f,%.2f]: %s' % (disp_key, l['pid'],
                                                   l['cpu'], l['mem'],
                                                   l['cmd']))
 
@@ -106,6 +115,10 @@ class ProcMon:
         out_line = []
         for k in self.keyword:
             n = len(self.find_list[k])
+            [key_str, disp_str] = [k, k]
+            if ':' in k:
+                key_str, disp_str = k.split(':')
+
             if sym:
                 if n > 0:
                     s = '*'
@@ -116,7 +129,7 @@ class ProcMon:
                     s = '+'
                 else:
                     s = str(n)
-            out_line.append('%s:%s' % (s, k))
+            out_line.append('%s:%s' % (s, disp_str))
         return out_line
     
     def print_statline(self, sym=False):
@@ -155,7 +168,7 @@ class ProcMon:
     
 #####
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
-@click.command(context_settings=CONTEXT_SETTINGS, help='Template program')
+@click.command(context_settings=CONTEXT_SETTINGS, help='Process Monitor')
 @click.argument('keyword', type=str, nargs=-1)
 @click.option('--interval', '-i', 'interval', type=int, default=1,
               help='interval sec')
@@ -171,6 +184,8 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 @click.option('--debug', '-d', 'debug', is_flag=True, default=False,
               help='debug flag')
 def main(keyword, interval, count, oled, oled_server, oled_port, debug):
+    global logger
+
     logger.setLevel(INFO)
     if debug:
         logger.setLevel(DEBUG)
