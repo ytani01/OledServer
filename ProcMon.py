@@ -168,8 +168,8 @@ class ProcMon:
     
 #####
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
-@click.command(context_settings=CONTEXT_SETTINGS, help='Process Monitor')
-@click.argument('keyword', type=str, nargs=-1)
+@click.command(context_settings=CONTEXT_SETTINGS)
+@click.argument('keyword', metavar='[keyword]...', type=str, nargs=-1)
 @click.option('--interval', '-i', 'interval', type=int, default=1,
               help='interval sec')
 @click.option('--count', '-c', 'count', type=int, default=0,
@@ -184,6 +184,15 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 @click.option('--debug', '-d', 'debug', is_flag=True, default=False,
               help='debug flag')
 def main(keyword, interval, count, oled, oled_server, oled_port, debug):
+    '''
+Process Monitor
+
+Arguments:
+
+    [keyword]
+    '<regular expression>[:disp_str]'
+    '''
+    
     global logger
 
     logger.setLevel(INFO)
