@@ -36,7 +36,7 @@ class MainClass:
     
 #####
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
-@click.command(context_settings=CONTEXT_SETTINGS, help='Template program')
+@click.command(context_settings=CONTEXT_SETTINGS)
 @click.argument('text', type=str, default='Hello world !')
 @click.option('--server', '-s', 'server', type=str, default='localhost',
               help='server\'s hostname or IP address')
@@ -45,6 +45,13 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 @click.option('--debug', '-d', 'debug', is_flag=True, default=False,
               help='debug flag')
 def main(text, server, port, debug):
+    '''Python Template
+    
+Arguments:
+
+    text
+    Text
+    '''
     logger.setLevel(INFO)
     if debug:
         logger.setLevel(DEBUG)
