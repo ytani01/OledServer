@@ -1,4 +1,5 @@
 Adafruit-SSD1306
+Adafruit-SSD1327
 mojimoji
 netifaces
 spidev
