@@ -142,10 +142,10 @@ class ProcMon:
         
         with OledClient(self.oled_server, self.oled_port) as ol:
             ol.part('body')
-            #ol.row(0)
+            ol.row(0)
             ol.crlf(True)
             ol.zenkaku(True)
-            #ol.clear()
+            ol.clear()
             for l in self.get_statline(sym):
                 ol.send(l)
 
