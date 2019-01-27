@@ -15,7 +15,7 @@ OPT="-h 2 -f 1 $1"
 CMD="${BINDIR}/${CMDNAME} ${OPT}"
 
 if [ -x ${ENVBIN}/${CMDNAME} ]; then
-    CMD=${ENVBIN}/${CMDNAME}
+    CMD="${ENVBIN}/${CMDNAME} ${OPT}"
 fi
 
 if [ ! -d ${LOGDIR} ]; then
