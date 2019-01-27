@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import sys
-import Adafruit_SSD1306
+#import Adafruit_SSD1306
+from luma.core.interface.serial import i2c
+from luma.oled.device import ssd1327, ssd1306
 from PIL import Image, ImageDraw, ImageFont
 #import textwrap
 import mojimoji
@@ -67,26 +69,41 @@ class OledText:
     TRANS_SRC = '　．、，－＋＊／’”｀：；（）［］＜＞＃＄％＆＠￥'
     TRANS_DST = ' .､,-+*/\'\"`:;()[]<>#$%&@\\'
 
-    def __init__(self, headerlines=0, footerlines=0, zenkaku=False,
-                 fontsize=8, rst=24):
-        self.enable = True
+    def __init__(self, device='ssd1306', headerlines=0, footerlines=0,
+                 zenkaku=False, fontsize=8, rst=24):
+        self.device   = device
+        self.enable   = True
         self.fontsize = fontsize
-        self.rst = rst
+        self.rst      = rst
 
         self.trans_tbl = str.maketrans(__class__.TRANS_SRC,
                                        __class__.TRANS_DST)
 
         # initialize display
-        self.disp = Adafruit_SSD1306.SSD1306_128_64(rst=self.rst)
+        self.i2c = i2c(port=1, address=0x3C)
+
+        self.disp = None
+        if device == 'ssd1306':
+            #self.disp = Adafruit_SSD1306.SSD1306_128_64(rst=self.rst)
+            self.disp = ssd1306(self.i2c)
+            self.mode = '1'
+        if device == 'ssd1327':
+            self.disp = ssd1327(self.i2c)
+            self.mode = 'RGB'
+        if self.disp == None:
+            self.enable = False
+            return None
+        '''
         try:
             self.disp.begin()
         except:
             self.enable = False
             return None
+        '''
 
         # Create blank image for drawing.
         # Make sure to create image with mode '1' for 1-bit color.
-        self.image = Image.new('1', (self.disp.width, self.disp.height))
+        self.image = Image.new(self.mode, (self.disp.width, self.disp.height))
 
         # Get drawing object to draw on image.
         self.draw = ImageDraw.Draw(self.image)
@@ -138,9 +155,12 @@ class OledText:
 
     # output physical display
     def _display(self, display_now=True):
+        if not self.enable:
+            return
+        
         if display_now:
-            self.disp.image(self.image)
-            self.disp.display()
+            #self.disp.image(self.image)
+            self.disp.display(self.image)
 
     # draw border
     def _draw_border(self, width=2, display_now=False):
@@ -186,7 +206,7 @@ class OledText:
         self._display(display_now)
 
     # selct current part
-    def set_part(self, part, row=-1, zenkaku=None, crlf=None):
+    def set_part(self, part='body', row=-1, zenkaku=None, crlf=None):
         if not self.enable:
             return
 
@@ -226,9 +246,9 @@ class OledText:
         self.set_part(part, crlf=crlf)
 
     #
-    def _draw_1line(self, disp_row, text):
+    def _draw_1line(self, disp_row, text, fill=255):
         x1, y1 = 0, disp_row * self.char_height
-        self.draw.text((x1,y1), text, font=self.font, fill=255)
+        self.draw.text((x1,y1), text, font=self.font, fill=fill)
         logger.debug('draw.text(%d, %d)', x1, y1)
 
     #
@@ -317,14 +337,15 @@ class OledText:
         
 #####
 @click.command(help='OLED Text library')
+@click.argument('display', nargs=1)
 @click.option('--debug', '-d', 'debug', is_flag=True, default=False,
               help='debug flag')
-def main(debug):
+def main(display, debug):
     logger.setLevel(INFO)
     if debug:
         logger.setLevel(DEBUG)
 
-    ot = OledText(2,1)
+    ot = OledText(display, 2,1)
     logger.info('font:   %d', ot.fontsize)
     logger.info('char:   %d x %d', ot.char_width, ot.char_height)
     logger.info('disp:   %d x %d', ot.disp_cols, ot.disp_rows)
@@ -341,6 +362,9 @@ def main(debug):
     time.sleep(2)
     ot.set_part('body', zenkaku=False)
     ot.print('ABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞ')
+    time.sleep(2)
+    ot.print('ABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞ')
+    time.sleep(2)
     ot.print('font: %d = %d x %d pixels' % (ot.fontsize,
                                               ot.char_width, ot.char_height))
     ot.print('%d cols x %d rows' % (ot.disp_cols, ot.disp_rows))
@@ -349,16 +373,21 @@ def main(debug):
     ot.set_crlf(False)
     ot.set_zenkaku(True)
     ot.print(time.strftime('%H:%M:%S'))
-    time.sleep(1)
+    time.sleep(0.5)
     ot.set_row(1)
     ot.print(time.strftime('%H:%M:%S'))
-    time.sleep(1)
+    time.sleep(0.5)
     ot.set_row(1)
     ot.print(time.strftime('%H:%M:%S'))
-    time.sleep(2)
+    time.sleep(0.5)
+    ot.set_row(1)
+    ot.print(time.strftime('%H:%M:%S'))
+    time.sleep(0.5)
     ot.clear('footer')
     time.sleep(2)
     ot.clear('body')
+    time.sleep(2)
+    ot.clear('header')
 
 if __name__ == '__main__':
     main()

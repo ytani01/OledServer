@@ -33,10 +33,12 @@ logger.propagate = False
 class OledWorker(threading.Thread):
     CMD_PREFIX = '@@@'
     
-    def __init__(self, header=0, footer=0):
+    def __init__(self, device='ssd1306', header=0, footer=0):
+        self.device = device
+        
         self.msgq = queue.Queue()
 
-        self.ot = OledText(headerlines=header, footerlines=footer)
+        self.ot = OledText(device, headerlines=header, footerlines=footer)
         self.zenkakuflag = False
         super().__init__()
 
@@ -256,8 +258,13 @@ class OledServer(socketserver.TCPServer):
     DEF_PORT_NUM = 12345
     allow_reuse_address = True
 
-    def __init__(self, handler, worker, port_num=0, header=0, footer=0):
-        self.worker	= worker(header, footer)
+    def __init__(self, device='ssd1306', handler=None, worker=None, port_num=0,
+                 header=0, footer=0):
+        logger.debug('%s> device:%s', __class__.__name__, device)
+
+        self.device     = device
+        
+        self.worker	= worker(self.device, header, footer)
         self.worker.start()
         logger.debug('%s> worker:%s', __class__.__name__, worker.__name__)
         
@@ -278,6 +285,7 @@ class OledServer(socketserver.TCPServer):
 
 #####
 @click.command(help='OLED display server')
+@click.argument('device', type=str, nargs=1)
 @click.option('--port',   '-p', 'port',   type=int, default=0,
               help='port number')
 @click.option('--header', '-h', 'header', type=int, default=0,
@@ -286,7 +294,7 @@ class OledServer(socketserver.TCPServer):
               help='footer lines')
 @click.option('--debug', '-d', 'debug', is_flag=True, default=False,
               help='debug flag')
-def main(port, header, footer, debug):
+def main(device, port, header, footer, debug):
     global continueToServe
     continueToServe = True
 
@@ -296,7 +304,8 @@ def main(port, header, footer, debug):
 
     try:
         logger.debug('port=%d', port)
-        server = OledServer(OledHandler, OledWorker, port, header, footer)
+        server = OledServer(device, OledHandler, OledWorker, port,
+                            header, footer)
 
     except Exception as e:
         logger.error('Exception %s %s', type(e), e)
