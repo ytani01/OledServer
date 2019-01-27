@@ -11,7 +11,7 @@ LOGFILE=${LOGDIR}/${MYNAME}.log
 
 CMDNAME="OledServer.py"
 #OPT="-h 2 -f 1"
-OPT="-h 2 "
+OPT="-h 2 -f 1 $1"
 CMD="${BINDIR}/${CMDNAME} ${OPT}"
 
 if [ -x ${ENVBIN}/${CMDNAME} ]; then
