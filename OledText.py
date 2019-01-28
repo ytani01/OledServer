@@ -20,11 +20,19 @@ logger = getLogger(__name__)
 logger.setLevel(INFO)
 handler = StreamHandler()
 handler.setLevel(DEBUG)
-handler_fmt = Formatter('%(asctime)s %(levelname)s %(funcName)s> %(message)s',
-                        datefmt='%H:%M:%S')
+handler_fmt = Formatter(
+    '%(asctime)s %(levelname)s %(name)s.%(funcName)s> %(message)s',
+    datefmt='%H:%M:%S')
 handler.setFormatter(handler_fmt)
 logger.addHandler(handler)
 logger.propagate = False
+def init_logger(name, debug):
+    l = logger.getChild(name)
+    if debug:
+        l.setLevel(DEBUG)
+    else:
+        l.setLevel(INFO)
+    return l
 
 # $ wget http://www.geocities.jp/littlimi/arc/misaki/misaki_ttf_2015-04-10.zip
 FONT_DIR	= '/home/pi/font/misakifont'
@@ -35,7 +43,13 @@ FONT_PATH	= FONT_DIR + '/' + FONT_NAME
 # part: 'header', 'body', 'footer'
 #
 class OledPart:
-    def __init__(self, disp_row, rows=0, zenkaku=True, crlf=True):
+    def __init__(self, disp_row, rows=0, zenkaku=True, crlf=True, debug=False):
+        self.logger = init_logger(__class__.__name__, debug)
+        self.logger.debug('disp_row=%d', disp_row)
+        self.logger.debug('rows    =%d', rows)
+        self.logger.debug('zenkaku =%s', zenkaku)
+        self.logger.debug('crlf    =%s', crlf)
+        
         self.enable = True
 
         self.disp_row = disp_row
@@ -49,6 +63,7 @@ class OledPart:
 
     def clear(self):
         self.line = [''] * self.rows
+        self.cur_row = 0
 
     def writeline(self, text):
         if self.cur_row > self.rows - 1:
@@ -70,7 +85,15 @@ class OledText:
     TRANS_DST = ' .､,-+*/\'\"`:;()[]<>#$%&@\\'
 
     def __init__(self, device='ssd1306', headerlines=0, footerlines=0,
-                 zenkaku=False, fontsize=8, rst=24):
+                 zenkaku=False, fontsize=8, rst=24, debug=False):
+        self.logger = init_logger(__class__.__name__, debug)
+        self.logger.debug('device      = %s', device)
+        self.logger.debug('headerlines = %d', headerlines)
+        self.logger.debug('fotterlines = %d', footerlines)
+        self.logger.debug('zenkaku     = %s', zenkaku)
+        self.logger.debug('fontsize    = %d', fontsize)
+        self.logger.debug('rst         = %d', rst)
+
         self.device   = device
         self.enable   = True
         self.fontsize = fontsize
@@ -83,14 +106,15 @@ class OledText:
         self.i2c = i2c(port=1, address=0x3C)
 
         self.disp = None
-        if device == 'ssd1306':
+        if self.device == 'ssd1306':
             #self.disp = Adafruit_SSD1306.SSD1306_128_64(rst=self.rst)
             self.disp = ssd1306(self.i2c)
             self.mode = '1'
-        if device == 'ssd1327':
+        if self.device == 'ssd1327':
             self.disp = ssd1327(self.i2c)
             self.mode = 'RGB'
         if self.disp == None:
+            self.logger.error('invalid device:%s', self.device)
             self.enable = False
             return None
         '''
@@ -189,7 +213,7 @@ class OledText:
         x2 = self.disp.width - 1
         y2 = y1 + self.char_height * self.part[part].rows - 1
         self.draw.rectangle([(x1, y1), (x2, y2)], outline=0, fill=0)
-        logger.debug('clear rectangle (%d,%d),(%d,%d)', x1, y1, x2, y2)
+        self.logger.debug('clear rectangle (%d,%d),(%d,%d)', x1, y1, x2, y2)
         
     # clear display
     def clear(self, part='', display_now=True):
@@ -249,7 +273,7 @@ class OledText:
     def _draw_1line(self, disp_row, text, fill=255):
         x1, y1 = 0, disp_row * self.char_height
         self.draw.text((x1,y1), text, font=self.font, fill=fill)
-        logger.debug('draw.text(%d, %d)', x1, y1)
+        self.logger.debug('draw.text(%d, %d)', x1, y1)
 
     #
     def _draw_part(self, part=''):
@@ -267,17 +291,17 @@ class OledText:
 
     # 1行分出力し、crlfフラグに応じてスクロール処理も行う
     def _print_1line(self, text, part='', crlf=None):
-        logger.debug('part=%-6s crlf=%s text=\'%s\'', part, crlf, text)
+        self.logger.debug('part=%s crlf=%s text=\'%s\'', part, crlf, text)
 
         if part == '':
             part = self.cur_part
-            logger.debug('part=%-6s', part)
+            self.logger.debug('part=%-6s', part)
         if self.part[part].rows < 1:
             return
 
         if crlf == None:
             crlf = self.part[part].crlf
-            logger.debug('crlf=%s', crlf)
+            self.logger.debug('crlf=%s', crlf)
         self.part[part].crlf = crlf
 
         self.part[part].writeline(text)
@@ -288,13 +312,13 @@ class OledText:
 
     # 長い行を折り返して出力する。必要に応じてスクロールも行う。
     def print(self, text, part='', crlf=None, display_now=True):
-        logger.debug('part=%-6s crlf=%s text=\'%s\'', part, crlf, text)
+        self.logger.debug('part=\'%s\' crlf=%s text=\'%s\'', part, crlf, text)
         if part == '':
             part = self.cur_part
-            logger.debug('part=%-6s', part)
+            self.logger.debug('part=%-6s', part)
         if crlf == None:
             crlf = self.part[part].crlf
-            logger.debug('crlf=%s', crlf)
+            self.logger.debug('crlf=%s', crlf)
         self.part[part].crlf = crlf
 
         if len(text) == 0:
@@ -316,7 +340,7 @@ class OledText:
                 ch_len = 0.5
 
             if zenkaku_len + ch_len > self.disp_cols:
-                logger.debug('line=%s zenkaku_len=%.1f ch_len=%.1f',
+                self.logger.debug('line=%s zenkaku_len=%.1f ch_len=%.1f',
                              line, zenkaku_len, ch_len)
                 self._print_1line(line, part=part, crlf=crlf)
 
@@ -341,11 +365,12 @@ class OledText:
 @click.option('--debug', '-d', 'debug', is_flag=True, default=False,
               help='debug flag')
 def main(display, debug):
+    
     logger.setLevel(INFO)
     if debug:
         logger.setLevel(DEBUG)
 
-    ot = OledText(display, 2,1)
+    ot = OledText(display, 2, 1, debug=debug)
     logger.info('font:   %d', ot.fontsize)
     logger.info('char:   %d x %d', ot.char_width, ot.char_height)
     logger.info('disp:   %d x %d', ot.disp_cols, ot.disp_rows)

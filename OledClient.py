@@ -195,7 +195,7 @@ def main(text, host, port, clockmode, debug):
     oc.send(text)
     oc.close()
 
-    #time.sleep(2)
+    time.sleep(2)
     
     ### with .. as ..
     with OledClient(host, port) as oc:
@@ -210,12 +210,15 @@ def main(text, host, port, clockmode, debug):
 
         oc.part('body')
         oc.crlf(True)
+        oc.clear()
         for i in range(3):
-            oc.clear()
             oc.zenkaku(False)
             oc.send('ABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞ')
             oc.zenkaku(True)
             oc.send(myip)
+            time.sleep(2)
+            oc.send('---')
+            time.sleep(2)
         
 if __name__ == '__main__':
     main()
