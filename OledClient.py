@@ -178,9 +178,14 @@ def main(text, host, port, clockmode, debug):
             logger.error(e)
             logger.warn('exit(0)')
             sys.exit(0)
+
+    if text != '':
+        with OledClient(host, port) as oc:
+            oc.send(text)
+
+        sys.exit(0)
         
-    if text == '':
-        text = 'Hello, world !'
+    text = 'Hello, world !'
     logger.debug('text=%s', text)
         
     ### open/close
