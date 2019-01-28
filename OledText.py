@@ -107,7 +107,6 @@ class OledText:
 
         self.disp = None
         if self.device == 'ssd1306':
-            #self.disp = Adafruit_SSD1306.SSD1306_128_64(rst=self.rst)
             self.disp = ssd1306(self.i2c)
             self.mode = '1'
         if self.device == 'ssd1327':

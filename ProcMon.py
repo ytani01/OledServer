@@ -23,16 +23,25 @@ logger.propagate = False
 
 #####
 class ProcMon:
-    CMD_PS = ['ps', 'auxww']
+    CMD_PS          = ['ps', 'auxww']
     DEF_OLED_SERVER = 'localhost'
-    DEF_OLED_PORT = 12345
+    DEF_OLED_PORT   = 12345
 
-    def __init__(self, keyword, oled=False, oled_server='', oled_port=0):
-        self.keyword = keyword
+    def __init__(self, keyword, oled='', oled_server='', oled_port=0):
+        self.keyword     = keyword
+        self.oled        = oled
+        self.oled_server = oled_server
+        self.oled_port   = oled_port
 
-        self.oled		= oled
-        self.oled_server	= oled_server
-        self.oled_port		= oled_port
+        self.oled_part = 'body'
+        if self.oled == '':
+            self.oled_part = ''
+        else:
+            if self.oled[0] == 'h':
+                self.oled_part = 'header'
+            if self.oled[0] == 'f':
+                self.oled_part = 'footer'
+            
         if self.oled_server != '':
             self.oled_server	= __class__.DEF_OLED_SERVER
         if self.oled_port != 0:
@@ -137,11 +146,11 @@ class ProcMon:
             print(l)
 
     def oled_statline(self, sym=False):
-        if not self.oled:
+        if self.oled_part == '':
             return
         
         with OledClient(self.oled_server, self.oled_port) as ol:
-            ol.part('body')
+            ol.part(self.oled_part)
             ol.row(0)
             ol.crlf(True)
             ol.zenkaku(True)
@@ -174,8 +183,8 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
               help='interval sec')
 @click.option('--count', '-c', 'count', type=int, default=0,
               help='count')
-@click.option('--oled', '-o', 'oled', is_flag=True, default=False,
-              help='OLED flag')
+@click.option('--oled', '-o', 'oled', type=str, default='',
+              help='OLED switch: body/header/footer')
 @click.option('--oled-server', '-os', 'oled_server', type=str,
               default='localhost',
               help='OLED server\'s hostname or IP address')
