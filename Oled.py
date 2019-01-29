@@ -42,19 +42,24 @@ class Oled:
         self.i2c_bus  = i2c_bus
         self.i2c_addr = i2c_addr
 
-        self.enable = True
+        self.enable = False
+        if self.open() == self:
+            self.enable = True
 
     def __enter__(self):
         self.logger.debug('enter \'with\' block')
-        return self.open()
+
+        return self
 
     def __exit__(self, ex_type, ex_value, trace):
         self.logger.debug('(%s,%s,%s)', ex_type, ex_value, trace)
-        self.close()
+
+        self.cleanup()
         self.logger.debug('exit \'with\' block')
 
     def open(self):
         self.logger.debug('')
+
         self.i2c = i2c(port=self.i2c_bus, address=self.i2c_addr)
 
         self.disp = None
@@ -69,36 +74,32 @@ class Oled:
             self.logger.error('invalid display_name:%s', self.display_name)
             self.enable = False
             return None
-        #self.disp.persist = True
+        self.disp.persist = True
 
-        self.logger.debug('self.disp')
-        for x in dir(self.disp):
-            self.logger.debug('  %s', x)
-
-        self.width  = self.disp.width
-        self.height = self.disp.height
-
-        self.logger.debug('w=%d, h=%d', self.disp.width, self.disp.height)
-        
         self.image = Image.new(self.mode, self.disp.size)
         self.draw  = ImageDraw.Draw(self.image)
-        self.image2 = Image.new(self.mode, self.disp.size)
-        self.draw2  = ImageDraw.Draw(self.image2)
 
-        self.logger.debug('self.draw')
-        for x in dir(self.draw):
-            self.logger.debug('  %s', x)
-
-        self.display()
-
+        self.clear()
+        
         return self
 
-    def close(self):
+    def cleanup(self):
         self.logger.debug('')
+        
         self.disp.cleanup()
+
+    def clear(self, display_now=False):
+        self.logger.debug('display_now = %s', display_now)
+        
+        xy = [(0, 0), (self.disp.width - 1, self.disp.height - 1)]
+        self.draw.rectangle(xy, outline=0, fill=0)
+
+        if display_now:
+            self.display()
 
     def display(self):
         self.logger.debug('')
+        
         self.disp.display(self.image)
 
 ##### sample application
@@ -114,25 +115,27 @@ class Sample:
         self.i2c_bus  = i2c_bus
         self.i2c_addr = i2c_addr
 
+        self.ol = Oled(self.display, self.i2c_bus, self.i2c_addr,
+                       debug=self.debug)
+
     def main(self):
-        with Oled(self.display, self.i2c_bus, self.i2c_addr,
-                  debug=self.debug) as ol:
-            while True:
-                ol.draw.rectangle([(0, 0),(ol.width - 1, ol.height - 1)],
-                                   outline=255, width=10, fill=64)
-                ol.display()
+
+        while True:
+            xy = [(0, 0), (self.ol.disp.width - 1, self.ol.disp.height - 1)]
+            self.ol.draw.rectangle(xy, outline=255, width=10, fill=64)
+            self.ol.display()
                 
-                time.sleep(2)
+            time.sleep(2)
+
+            xy = [(20,20), (self.ol.disp.width - 21, self.ol.disp.height - 21)]
+            self.ol.draw.rectangle(xy, outline=255, width=10, fill=128)
+            self.ol.display()
                 
-                ol.draw.rectangle([(20, 20),(ol.width - 21, ol.height - 21)],
-                                  outline=255, width=10, fill=128)
-                ol.display()
-                
-                time.sleep(2)
+            time.sleep(2)
             
     def finish(self):
         self.logger.debug('')
-
+        self.ol.cleanup()
 
 #####
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
