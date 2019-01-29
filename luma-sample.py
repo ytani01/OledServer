@@ -126,7 +126,7 @@ class Sample:
                 
                 time.sleep(2)
                 
-                ol.draw.rectangle([(0, 0),(ol.width - 1, ol.height - 1)],
+                ol.draw.rectangle([(20, 20),(ol.width - 21, ol.height - 21)],
                                   outline=255, width=10, fill=128)
                 ol.display()
                 
