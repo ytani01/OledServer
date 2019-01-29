@@ -116,13 +116,6 @@ class OledText:
             self.logger.error('invalid device:%s', self.device)
             self.enable = False
             return None
-        '''
-        try:
-            self.disp.begin()
-        except:
-            self.enable = False
-            return None
-        '''
 
         # Create blank image for drawing.
         # Make sure to create image with mode '1' for 1-bit color.
@@ -137,12 +130,12 @@ class OledText:
         # load font
         self.font = ImageFont.truetype(FONT_PATH, self.fontsize,
                                        encoding='unic')
-        (self.char_width, self.char_height) = self.font.getsize('８')
-        self.char_height += 1
+        (self.ch_w, self.ch_h) = self.font.getsize('８')
+        self.ch_h += 1
         
         # physical cols and rows
-        self.disp_cols = int(self.disp.width  / self.char_width)
-        self.disp_rows = int(self.disp.height / self.char_height)
+        self.disp_cols = int(self.disp.width  / self.ch_w)
+        self.disp_rows = int(self.disp.height / self.ch_h)
 
         # setup header, footer and body
         self.cur_part = 'body'
@@ -152,18 +145,23 @@ class OledText:
 
     # set header and footer
     def set_layout(self, header_lines=0, footer_lines=0, display_now=True):
-        if header_lines + footer_lines + 2 > self.disp_rows:
-            return False
+        self.logger.debug('header_lines = %d', header_lines)
+        self.logger.debug('footer_lines = %d', footer_lines)
 
         header_start = 0
         body_start   = header_lines
         footer_start = self.disp_rows - footer_lines
+        
         body_lines   = self.disp_rows - header_lines - footer_lines
         if header_lines > 0:
             body_start += 1
             body_lines -= 1
         if footer_lines > 0:
             body_lines -= 1
+
+        if body_lines <= 0:
+            self.logger.error('body_lines = %d', body_lines)
+            return False
 
         self.part = {}
         self.part['header'] = OledPart(header_start, header_lines)
@@ -191,14 +189,15 @@ class OledText:
         x2 = self.disp.width - 1
 
         # header
-        if self.part['header'].rows > 0:
-            y1 = self.char_height * (self.part['header'].rows + 0.5) - 1
+        rows = self.part['header'].rows
+        if rows > 0:
+            y1 = self.ch_h * (rows + 0.5) - 1
             self.draw.line([(x1, y1), (x2, y1)], fill=255, width=width)
 
         # footer
-        if self.part['footer'].rows > 0:
-            y1 = self.disp.height - \
-                 self.char_height * (self.part['footer'].rows + 0.5) - 1
+        rows = self.part['footer'].rows
+        if rows > 0:
+            y1 = self.disp.height - self.ch_h * (rows + 0.5) - 1
             self.draw.line([(x1, y1), (x2, y1)], fill=255, width=width)
 
         self._display(display_now)
@@ -208,9 +207,9 @@ class OledText:
             part = self.cur_part
 
         x1 = 0
-        y1 = self.char_height * self.part[part].disp_row
+        y1 = self.ch_h * self.part[part].disp_row
         x2 = self.disp.width - 1
-        y2 = y1 + self.char_height * self.part[part].rows - 1
+        y2 = y1 + self.ch_h * self.part[part].rows - 1
         self.draw.rectangle([(x1, y1), (x2, y2)], outline=0, fill=0)
         self.logger.debug('clear rectangle (%d,%d),(%d,%d)', x1, y1, x2, y2)
         
@@ -270,7 +269,7 @@ class OledText:
 
     #
     def _draw_1line(self, disp_row, text, fill=255):
-        x1, y1 = 0, disp_row * self.char_height
+        x1, y1 = 0, disp_row * self.ch_h
         self.draw.text((x1,y1), text, font=self.font, fill=fill)
         self.logger.debug('draw.text(%d, %d)', x1, y1)
 
@@ -371,7 +370,7 @@ def main(display, debug):
 
     ot = OledText(display, 2, 1, debug=debug)
     logger.info('font:   %d', ot.fontsize)
-    logger.info('char:   %d x %d', ot.char_width, ot.char_height)
+    logger.info('char:   %d x %d', ot.ch_w, ot.ch_h)
     logger.info('disp:   %d x %d', ot.disp_cols, ot.disp_rows)
     ip = ipaddr().ip_addr()
     logger.info('ipaddr: %s', ip)
@@ -390,7 +389,7 @@ def main(display, debug):
     ot.print('ABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞ')
     time.sleep(2)
     ot.print('font: %d = %d x %d pixels' % (ot.fontsize,
-                                              ot.char_width, ot.char_height))
+                                              ot.ch_w, ot.ch_h))
     ot.print('%d cols x %d rows' % (ot.disp_cols, ot.disp_rows))
     time.sleep(2)
     ot.set_row(1, 'header')

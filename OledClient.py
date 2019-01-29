@@ -110,44 +110,39 @@ class OledClient:
 
 #####
 def clock_mode(host, port, myip, mode=1, sec=2):
-    count = 0
     prev_str_time = ''
-    oc = OledClient(host, port)
     while True:
-        count += 1
         str_time = time.strftime('%H:%M')
-        logger.debug('count=%d, %s', count, time.strftime('%H:%M:%S'))
+        logger.debug('%s', time.strftime('%H:%M:%S'))
 
         if str_time != prev_str_time:
-            logger.info('update server time[%d] %s', count, str_time)
+            logger.info('update server time: %s', str_time)
 
-            oc.open()
-
-            # header
-            oc.part('header')
-            #oc.clear()
-            oc.crlf(False)
-            oc.zenkaku(False)
-            oc.row(0)
-            oc.send('@DATE@  @H@:@M@')
-            if mode == 1:
-                oc.zenkaku(True)
-                oc.row(1)
-                oc.send(myip)
-
-            # footer
-            if mode == 2:
-                oc.part('footer')
-                #oc.clear()
+            with OledClient(host, port) as oc:
+                # header
+                oc.part('header')
+                oc.clear()
                 oc.crlf(False)
-                oc.zenkaku(True)
+                oc.zenkaku(False)
                 oc.row(0)
-                oc.send(myip)
-            
-            # body
-            oc.part('body')
-            oc.crlf(True)
-            oc.close()
+                oc.send('@DATE@  @H@:@M@ ')
+                if mode == 1:
+                    oc.zenkaku(True)
+                    oc.row(1)
+                    oc.send(myip)
+
+                # footer
+                if mode == 2:
+                    oc.part('footer')
+                    oc.clear()
+                    oc.crlf(False)
+                    oc.zenkaku(True)
+                    oc.row(0)
+                    oc.send(myip)
+
+                # body
+                oc.part('body')
+                oc.crlf(True)
 
             prev_str_time = str_time
 
