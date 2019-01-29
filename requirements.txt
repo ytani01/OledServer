@@ -1,6 +1,7 @@
 #Adafruit-SSD1306
 #Adafruit-SSD1327
 luma.oled
+luma.core
 mojimoji
 netifaces
 spidev

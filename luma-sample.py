@@ -29,7 +29,7 @@ def init_logger(name, debug):
     return l
 
 #####
-class OledClass:
+class Oled:
     I2C_ADDR = 0x3C
     
     def __init__(self, display_name='ssd1306', i2c_bus=1, i2c_addr=I2C_ADDR,
@@ -60,12 +60,10 @@ class OledClass:
         self.disp = None
         if self.display_name == 'ssd1306':
             self.disp = ssd1306(self.i2c)
-            self.disp2 = ssd1306(self.i2c)
             self.mode = '1'
         if self.display_name == 'ssd1327':
             #self.disp = ssd1327(self.i2c, framebuffer='diff_to_previous')
             self.disp = ssd1327(self.i2c)
-            self.disp2 = ssd1327(self.i2c)
             self.mode = 'RGB'
         if self.disp == None:
             self.logger.error('invalid display_name:%s', self.display_name)
@@ -117,8 +115,8 @@ class Sample:
         self.i2c_addr = i2c_addr
 
     def main(self):
-        with OledClass(self.display, self.i2c_bus, self.i2c_addr,
-                       debug=self.debug) as ol:
+        with Oled(self.display, self.i2c_bus, self.i2c_addr,
+                  debug=self.debug) as ol:
             while True:
                 ol.draw.rectangle([(0, 0),(ol.width - 1, ol.height - 1)],
                                    outline=255, width=10, fill=64)

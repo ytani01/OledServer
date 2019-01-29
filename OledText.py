@@ -143,6 +143,9 @@ class OledText:
             self.enable = False
             return None
 
+    def close(self):
+        self.disp.cleanup()
+        
     # set header and footer
     def set_layout(self, header_lines=0, footer_lines=0, display_now=True):
         self.logger.debug('header_lines = %d', header_lines)
@@ -411,6 +414,7 @@ def main(display, debug):
     ot.clear('body')
     time.sleep(2)
     ot.clear('header')
+    ot.close()
 
 if __name__ == '__main__':
     main()
