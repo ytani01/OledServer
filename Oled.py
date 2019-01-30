@@ -102,25 +102,28 @@ SPI pins
         
         self.disp = None
         if self.dev == 'ssd1306':
-            if self.param1 == 0:
-                self.param1 = self.I2C_ADDR
+            if self.param2 == 0:
+                self.param2 = self.I2C_ADDR
             self.serial = i2c(port=self.param1, address=self.param2)
-            self.disp = ssd1306(self.serial)
-            self.mode = '1'
+            self.disp   = ssd1306(self.serial)
+            self.mode   = '1'
+
         if self.dev == 'ssd1327':
-            if self.param1 == 0:
-                self.param1 = self.I2C_ADDR
+            if self.param2 == 0:
+                self.param2 = self.I2C_ADDR
             self.serial = i2c(port=self.param1, address=self.param2)
-            self.disp = ssd1327(self.serial)
-            self.mode = 'RGB'
+            self.disp   = ssd1327(self.serial)
+            self.mode   = 'RGB'
+
         if self.dev == 'ssd1331':
             self.serial = spi(device=self.param1, port=self.param2)
-            self.disp = ssd1331(self.serial)
-            self.mode = 'RGB'
+            self.disp   = ssd1331(self.serial)
+            self.mode   = 'RGB'
+            
         if self.disp == None:
             self.logger.error('invalid dev:%s', self.dev)
-            self.enable = False
-            return None
+            raise RuntimeError
+        
         self.disp.persist = True
 
         self.image = Image.new(self.mode, self.disp.size)
@@ -148,9 +151,6 @@ SPI pins
 
     def clear(self, display_now=False):
         self.logger.debug('display_now = %s', display_now)
-        if not self.available():
-            self.logger.debug('OLED is not available')
-            return
         
         xy = [(0, 0), (self.disp.width - 1, self.disp.height - 1)]
         self.draw.rectangle(xy, outline=0, fill=0)
@@ -158,12 +158,42 @@ SPI pins
         if display_now:
             self.display()
 
-    def display(self):
+    def display(self, img=None):
         self.logger.debug('')
-        if not self.available():
+
+        if img == None:
+            img = self.image
+        self.disp.display(img)
+
+    def loadImage(self, img=''):
+        if img == '':
             return
+
+        im = Image.open(img)
+
+        w = im.width
+        h = im.height
+        if w > self.disp.width or h > self.disp.height:
+            a1 = w / self.disp.width
+            a2 = h / self.disp.height
+
+            if a1 > a2:
+                w = self.disp.width
+                h = int(h / a1)
+            else:
+                w = int(w / a2)
+                h = self.disp.height
+        self.logger.debug('(w, h) = (%d, %d)', w, h)
+
+        x = int((self.disp.width - w) / 2)
+        y = int((self.disp.height - h) / 2)
+        self.logger.debug('(x, y) = (%d, %d)', x, y)
         
-        self.disp.display(self.image)
+        im2 = im.resize((w, h), Image.BICUBIC)
+
+        #self.clear(display_now=False)
+        self.image.paste(im2, (x, y))
+        #self.display()
 
 ##### sample application
 class BG:
