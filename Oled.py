@@ -165,10 +165,7 @@ SPI pins
             img = self.image
         self.disp.display(img)
 
-    def loadImage(self, img=''):
-        if img == '':
-            return
-
+    def loadImagefile(self, img, display_now=False, clear_flag=False):
         im = Image.open(img)
 
         w = im.width
@@ -189,11 +186,14 @@ SPI pins
         y = int((self.disp.height - h) / 2)
         self.logger.debug('(x, y) = (%d, %d)', x, y)
         
+        if clear_flag:
+            self.clear(display_now=False)
+            
         im2 = im.resize((w, h), Image.BICUBIC)
 
-        #self.clear(display_now=False)
         self.image.paste(im2, (x, y))
-        #self.display()
+        if display_now:
+            self.display()
 
 ##### sample application
 class BG:
