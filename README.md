@@ -1,12 +1,16 @@
-OLED Server and Library
+# OLED Server and Library
 ----
 
-* I2C_Oled
-* OledText
-* OledServer
-* OledClient
+* Oled(dev='ssd1331', param1=-1, param2=-1, debug=False)
 
-SPI pins
+* OledText(dev='ssd1306, headerlines=0, footerlines=0)
+
+* OledServer(device='ssd1306', handler=None, worker=None, port_num=0, header=0, footer=0, debug=False)
+
+* OledClient(host='', port=0)
+
+
+# SPI pins
 ----
 
 | SSD1331      |  0.95'  | 96x64    | 64K color   |
