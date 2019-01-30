@@ -2,14 +2,13 @@
 # -*- coding: utf-8 -*-
 
 import sys
-#import Adafruit_SSD1306
-from luma.core.interface.serial import i2c
-from luma.oled.device import ssd1327, ssd1306
+from Oled import Oled
 from PIL import Image, ImageDraw, ImageFont
 #import textwrap
 import mojimoji
 import unicodedata
 import time
+
 import click
 
 from ipaddr import ipaddr
@@ -103,29 +102,10 @@ class OledText:
                                        __class__.TRANS_DST)
 
         # initialize display
-        self.i2c = i2c(port=1, address=0x3C)
-
-        self.disp = None
-        if self.device == 'ssd1306':
-            self.disp = ssd1306(self.i2c)
-            self.mode = '1'
-        if self.device == 'ssd1327':
-            self.disp = ssd1327(self.i2c)
-            self.mode = 'RGB'
-        if self.disp == None:
-            self.logger.error('invalid device:%s', self.device)
-            self.enable = False
-            raise RuntimeError
-
-        # Create blank image for drawing.
-        # Make sure to create image with mode '1' for 1-bit color.
-        self.image = Image.new(self.mode, (self.disp.width, self.disp.height))
-
-        # Get drawing object to draw on image.
-        self.draw = ImageDraw.Draw(self.image)
+        self.oled = Oled(device)
 
         # clear display
-        self.disp.clear()
+        self.oled.disp.clear()
 
         # load font
         self.font = ImageFont.truetype(FONT_PATH, self.fontsize,
@@ -134,8 +114,8 @@ class OledText:
         self.ch_h += 1
         
         # physical cols and rows
-        self.disp_cols = int(self.disp.width  / self.ch_w)
-        self.disp_rows = int(self.disp.height / self.ch_h)
+        self.disp_cols = int(self.oled.disp.width  / self.ch_w)
+        self.disp_rows = int(self.oled.disp.height / self.ch_h)
 
         # setup header, footer and body
         self.cur_part = 'body'
@@ -144,7 +124,7 @@ class OledText:
             raise RuntimeError
 
     def close(self):
-        self.disp.cleanup()
+        self.oled.cleanup()
         
     # set header and footer
     def set_layout(self, header_lines=0, footer_lines=0, display_now=True):
@@ -165,7 +145,7 @@ class OledText:
 
         if body_lines <= 0:
             self.logger.error('body_lines = %d', body_lines)
-            return False
+            raise RuntimeError
 
         self.part = {}
         self.part['header'] = OledPart(header_start, header_lines)
@@ -184,25 +164,24 @@ class OledText:
             return
         
         if display_now:
-            #self.disp.image(self.image)
-            self.disp.display(self.image)
+            self.oled.display()
 
     # draw border
     def _draw_border(self, width=2, display_now=False):
         x1 = 0
-        x2 = self.disp.width - 1
+        x2 = self.oled.disp.width - 1
 
         # header
         rows = self.part['header'].rows
         if rows > 0:
             y1 = self.ch_h * (rows + 0.5) - 1
-            self.draw.line([(x1, y1), (x2, y1)], fill=255, width=width)
+            self.oled.draw.line([(x1, y1), (x2, y1)], fill=255, width=width)
 
         # footer
         rows = self.part['footer'].rows
         if rows > 0:
-            y1 = self.disp.height - self.ch_h * (rows + 0.5) - 1
-            self.draw.line([(x1, y1), (x2, y1)], fill=255, width=width)
+            y1 = self.oled.disp.height - self.ch_h * (rows + 0.5) - 1
+            self.oled.draw.line([(x1, y1), (x2, y1)], fill=255, width=width)
 
         self._display(display_now)
 
@@ -212,9 +191,9 @@ class OledText:
 
         x1 = 0
         y1 = self.ch_h * self.part[part].disp_row
-        x2 = self.disp.width - 1
+        x2 = self.oled.disp.width - 1
         y2 = y1 + self.ch_h * self.part[part].rows - 1
-        self.draw.rectangle([(x1, y1), (x2, y2)], outline=0, fill=0)
+        self.oled.draw.rectangle([(x1, y1), (x2, y2)], outline=0, fill=0)
         self.logger.debug('clear rectangle (%d,%d),(%d,%d)', x1, y1, x2, y2)
         
     # clear display
@@ -274,7 +253,7 @@ class OledText:
     #
     def _draw_1line(self, disp_row, text, fill=255):
         x1, y1 = 0, disp_row * self.ch_h
-        self.draw.text((x1,y1), text, font=self.font, fill=fill)
+        self.oled.draw.text((x1,y1), text, font=self.font, fill=fill)
         self.logger.debug('draw.text(%d, %d)', x1, y1)
 
     #
@@ -308,8 +287,7 @@ class OledText:
 
         self.part[part].writeline(text)
 
-        # draw part
-        # (text[]上での操作を self.drawに反映)
+        # (text[]上での変更を反映: only draw, not display yet
         self._draw_part(part)
 
     # 長い行を折り返して出力する。必要に応じてスクロールも行う。

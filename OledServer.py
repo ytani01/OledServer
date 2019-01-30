@@ -223,7 +223,7 @@ class OledHandler(socketserver.StreamRequestHandler):
         global continueToServe
         
         self.send_ack()
-        self.logger.info('Connected')
+        self.logger.debug('Connected')
 
         while True:
             #
@@ -244,7 +244,7 @@ class OledHandler(socketserver.StreamRequestHandler):
             #logger.debug('%s> net_data: \n%s', __class__.__name__, net_data)
             
             if len(net_data) == 0:
-                self.logger.info('Connection closed')
+                self.logger.debug('Connection closed')
                 break
 
             if not self.server.worker.is_alive():
