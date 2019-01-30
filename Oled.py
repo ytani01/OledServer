@@ -69,8 +69,8 @@ SPI pins
             elif dev in self.SPI_DEV:
                 self.param1 = 0
             else:
-                logger.error('invalic device %s', dev)
-                return None
+                logger.error('invalic device: %s', dev)
+                raise RuntimeError('invalid device: %s' % dev)
 
         if param2 < 0:
             if dev in self.I2C_DEV:
@@ -78,8 +78,8 @@ SPI pins
             elif dev in self.SPI_DEV:
                 self.param2 = 0
             else:
-                logger.error('invalic device %s', dev)
-                return None
+                logger.error('invalic device: %s', dev)
+                raise RuntimeError('invalid device: %s' % dev)
                 
         if self.open() == self:
             self.enable = True
@@ -101,6 +101,7 @@ SPI pins
         GPIO.setwarnings(False)
         
         self.disp = None
+        self.mode = ''
         if self.dev == 'ssd1306':
             if self.param2 == 0:
                 self.param2 = self.I2C_ADDR
@@ -120,9 +121,9 @@ SPI pins
             self.disp   = ssd1331(self.serial)
             self.mode   = 'RGB'
             
-        if self.disp == None:
-            self.logger.error('invalid dev:%s', self.dev)
-            raise RuntimeError
+        if self.mode == '':
+            self.logger.error('invalid device: %s', self.dev)
+            raise RuntimeError('invalid device: %s' % self.dev)
         
         self.disp.persist = True
 
@@ -146,8 +147,8 @@ SPI pins
             self.logger.debug('OLED is not available')
             return
 
-        self.logger.debug('self.disp.cleanup()')
         self.disp.cleanup()
+        self.logger.debug('done')
 
     def clear(self, display_now=False):
         self.logger.debug('display_now = %s', display_now)
@@ -165,8 +166,10 @@ SPI pins
             img = self.image
         self.disp.display(img)
 
-    def loadImagefile(self, img, display_now=False, clear_flag=False):
-        im = Image.open(img)
+    def loadImagefile(self, imgfile, display_now=False, clear_flag=False):
+        self.logger.debug('imgfile = %s', imgfile)
+
+        im = Image.open(imgfile)
 
         w = im.width
         h = im.height
@@ -325,7 +328,7 @@ class Sample:
 #####
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 @click.command(context_settings=CONTEXT_SETTINGS)
-@click.argument('dev', type=str, default='ssd1306', nargs=1)
+@click.argument('dev', type=str, metavar='<ssd1306|ssd1327|ssd1331>', nargs=1)
 @click.option('--debug', '-d', 'debug', is_flag=True, default=False,
               help='debug flag')
 def main(dev, debug):
@@ -333,10 +336,11 @@ def main(dev, debug):
     logger.debug('dev   = %s', dev)
     logger.debug('debug = %s', debug)
 
+    obj = Sample(dev, debug=debug)
     try:
-        obj = Sample(dev, debug=debug)
         obj.main()
     finally:
+        print('finally')
         obj.finish()
 
 if __name__ == '__main__':
