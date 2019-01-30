@@ -6,6 +6,7 @@ import time
 import threading
 import RPi.GPIO as GPIO
 from luma.core.interface.serial import i2c, spi
+from luma.core.render import canvas
 from luma.oled.device import ssd1306, ssd1327, ssd1331
 from PIL import Image, ImageDraw, ImageFont
 
@@ -33,20 +34,40 @@ def init_logger(name, debug):
 #####
 class Oled:
     I2C_ADDR = 0x3C
+    I2C_DEV = ['ssd1306', 'ssd1327']
+    SPI_DEV = ['ssd1331']
     
-    def __init__(self, display_name='ssd1331', param1=0, param2=I2C_ADDR,
-                 debug=False):
+    def __init__(self, dev='ssd1331', param1=-1, param2=-1, debug=False):
         self.logger = init_logger(__class__.__name__, debug)
-        self.logger.debug('display_name = %s',   display_name)
-        self.logger.debug('param1       = %d',   param1)
-        self.logger.debug('param2       = 0x%X', param2)
+        self.logger.debug('dev    = %s',   dev)
+        self.logger.debug('param1 = %d',   param1)
+        self.logger.debug('param2 = %d(0x%X)', param2, param2)
         self.debug = debug
 
-        self.display_name  = display_name
+        self.dev  = dev
         self.param1 = param1
         self.param2 = param2
 
-        self.enable = True
+        self.enable = False
+        
+        if param1 < 0:
+            if dev in self.I2C_DEV:
+                self.param1 = 1
+            elif dev in self.SPI_DEV:
+                self.param1 = 0
+            else:
+                logger.error('invalic device %s', dev)
+                return None
+
+        if param2 < 0:
+            if dev in self.I2C_DEV:
+                self.param2 = 0x3C
+            elif dev in self.SPI_DEV:
+                self.param2 = 0
+            else:
+                logger.error('invalic device %s', dev)
+                return None
+                
         if self.open() == self:
             self.enable = True
 
@@ -67,21 +88,24 @@ class Oled:
         GPIO.setwarnings(False)
         
         self.disp = None
-        if self.display_name == 'ssd1306':
+        if self.dev == 'ssd1306':
+            if self.param1 == 0:
+                self.param1 = self.I2C_ADDR
             self.serial = i2c(port=self.param1, address=self.param2)
             self.disp = ssd1306(self.serial)
             self.mode = '1'
-        if self.display_name == 'ssd1327':
+        if self.dev == 'ssd1327':
+            if self.param1 == 0:
+                self.param1 = self.I2C_ADDR
             self.serial = i2c(port=self.param1, address=self.param2)
-            #self.disp = ssd1327(self.i2c, framebuffer='diff_to_previous')
             self.disp = ssd1327(self.serial)
             self.mode = 'RGB'
-        if self.display_name == 'ssd1331':
+        if self.dev == 'ssd1331':
             self.serial = spi(device=self.param1, port=self.param2)
             self.disp = ssd1331(self.serial)
             self.mode = 'RGB'
         if self.disp == None:
-            self.logger.error('invalid display_name:%s', self.display_name)
+            self.logger.error('invalid dev:%s', self.dev)
             self.enable = False
             return None
         self.disp.persist = True
@@ -89,7 +113,7 @@ class Oled:
         self.image = Image.new(self.mode, self.disp.size)
         self.draw  = ImageDraw.Draw(self.image)
 
-        self.clear()
+        #self.clear()
         
         return self
 
@@ -130,20 +154,22 @@ class Oled:
 
 ##### sample application
 class BG:
-    def __init__(self, ol, w, debug=False):
+    def __init__(self, ol, color, w, debug=False):
         self.logger = init_logger(__class__.__name__, debug)
         self.debug = debug
-        self.logger.debug('w = %d', w)
+        self.logger.debug('color = %s', color)
+        self.logger.debug('w     = %d', w)
 
-        self.ol = ol
-        self.w  = w
+        self.ol    = ol
+        self.color = color
+        self.w     = w
 
         (self.x1, self.y1) = (0, 0)
         (self.x2, self.y2) = (self.ol.disp.width - 1, self.ol.disp.height - 1)
 
     def draw(self):
         xy = [(self.x1, self.y1), (self.x2, self.y2)]
-        self.ol.draw.rectangle(xy, outline=255, width=self.w, fill=0)
+        self.ol.draw.rectangle(xy, outline=self.color, width=self.w, fill=0)
         
 class Ball:
     def __init__(self, ol, color, xy, r, vxy=(0, 0), debug=False):
@@ -199,33 +225,35 @@ class Ball:
         self.lock.release()
 
 class Sample:
-    def __init__(self, display, i2c_bus, i2c_addr, debug=False):
+    def __init__(self, dev, debug=False):
         self.logger = init_logger(__class__.__name__, debug)
         self.debug = debug
-        self.logger.debug('display  = %s',   display)
-        self.logger.debug('i2c_bus  = %d',   i2c_bus)
-        self.logger.debug('i2c_addr = 0x%X', i2c_addr)
+        self.logger.debug('dev  = %s',   dev)
 
-        self.display  = display
-        self.i2c_bus  = i2c_bus
-        self.i2c_addr = i2c_addr
+        self.dev  = dev
 
-        self.ol = Oled(self.display, self.i2c_bus, self.i2c_addr,
-                       debug=self.debug)
+        self.ol = Oled(self.dev, debug=self.debug)
 
-        self.bg   = BG(self.ol, 2, debug=debug)
+        self.col = {}
+        self.col['bg'] = 255
+        self.col['ball'] = [255, 128]
+        if dev in Oled.SPI_DEV:
+            self.col['bg'] = 'yellow'
+            self.col['ball'] = ['red', 'blue']
+            
+        self.bg   = BG(self.ol, self.col['bg'], 2, debug=debug)
         self.ball = []
-        self.ball.append(Ball(self.ol, 255, (5, 10), 5, (2, -1), debug=debug))
-        self.ball.append(Ball(self.ol, 128, (10, 5), 5, (1, -2), debug=debug))
+        self.ball.append(Ball(self.ol, self.col['ball'][0],
+                              (5, 10), 5, (2, -1),
+                              debug=debug))
+        self.ball.append(Ball(self.ol, self.col['ball'][1],
+                              (10, 5), 5, (1, -2),
+                              debug=debug))
 
         self.bg.draw()
         for i in range(len(self.ball)):
             self.ball[i].draw()
         self.ol.display()
-
-    def disp_bg(self):
-        self.ol.draw.rectangle([(0, 0), (self.x_max, self.y_max)],
-                               outline=1, width=self.border_w, fill=0)
 
     def move(self):
         while True:
@@ -243,10 +271,7 @@ class Sample:
         disp_th.start()
 
         while True:
-            #self.ball.move()
-
             self.draw()
-                
             self.ol.display()
             time.sleep(0.01)
                 
@@ -257,17 +282,16 @@ class Sample:
 #####
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 @click.command(context_settings=CONTEXT_SETTINGS)
-@click.argument('display', type=str, default='ssd1306', nargs=1)
+@click.argument('dev', type=str, default='ssd1306', nargs=1)
 @click.option('--debug', '-d', 'debug', is_flag=True, default=False,
               help='debug flag')
-def main(display, debug):
+def main(dev, debug):
     logger = init_logger('', debug)
-    logger.debug('display  = %s', display)
-    logger.debug('debug    = %s', debug)
+    logger.debug('dev   = %s', dev)
+    logger.debug('debug = %s', debug)
 
     try:
-        #obj = Sample(display, 1, 0x3C, debug=debug)
-        obj = Sample(display, 0, 0, debug=debug)
+        obj = Sample(dev, debug=debug)
         obj.main()
     finally:
         obj.finish()
