@@ -6,6 +6,16 @@ OLED Server and Library
 * OledServer
 * OledClient
 
+SPI pins
+----
+
+| SSD1331      |  0.95'  | 96x64    | 64K color   |
+|-------------:|:-------:|:--------:|:------------|
+| VCC(3.3v)    | VCC     | DC       | BCM 24      |
+| BCM 10(MOSI) | D1(SDA) | GND      | GND         |
+| BCM 9(MISO)  | -       | RST(RES) | BCM 25      |
+| BCM 11(SCLK) | D0(SCL) | CS       | BCM 8 (CE0) |
+
 Reference
 ----
 * Luma.OLED
