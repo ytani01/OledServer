@@ -33,11 +33,24 @@ def init_logger(name, debug):
 
 #####
 class Oled:
-    I2C_ADDR = 0x3C
+    '''
+OLED
+
+SPI pins
+
+| SSD1331      |  0.95'  | 96x64    | 64K color   |
+|-------------:|:-------:|:--------:|:------------|
+| VCC(3.3v)    | VCC     | DC       | BCM 24      |
+| BCM 10(MOSI) | D1(SDA) | GND      | GND         |
+| BCM 9(MISO)  | -       | RST(RES) | BCM 25      |
+| BCM 11(SCLK) | D0(SCL) | CS       | BCM 8 (CE0) |
+    '''
+
+    DEF_I2C_ADDR = 0x3C
     I2C_DEV = ['ssd1306', 'ssd1327']
     SPI_DEV = ['ssd1331']
     
-    def __init__(self, dev='ssd1331', param1=-1, param2=-1, debug=False):
+    def __init__(self, dev, param1=-1, param2=-1, debug=False):
         self.logger = init_logger(__class__.__name__, debug)
         self.logger.debug('dev    = %s',   dev)
         self.logger.debug('param1 = %d',   param1)
@@ -61,7 +74,7 @@ class Oled:
 
         if param2 < 0:
             if dev in self.I2C_DEV:
-                self.param2 = 0x3C
+                self.param2 = self.DEF_I2C_ADDR
             elif dev in self.SPI_DEV:
                 self.param2 = 0
             else:
@@ -238,7 +251,7 @@ class Sample:
         self.col['bg'] = 255
         self.col['ball'] = [255, 128]
         if dev in Oled.SPI_DEV:
-            self.col['bg'] = 'yellow'
+            self.col['bg'] = 0x00ff00 # 'green'
             self.col['ball'] = ['red', 'blue']
             
         self.bg   = BG(self.ol, self.col['bg'], 2, debug=debug)
@@ -273,7 +286,7 @@ class Sample:
         while True:
             self.draw()
             self.ol.display()
-            time.sleep(0.01)
+            #time.sleep(0.01)
                 
     def finish(self):
         self.logger.debug('')

@@ -45,7 +45,7 @@ class OledWorker(threading.Thread):
         self.logger = init_logger(__class__.__name__, debug)
         self.logger.debug('device = %s', device)
         self.logger.debug('header = %d', header)
-        self.logger.debug('fotter = %d', footer)
+        self.logger.debug('footer = %d', footer)
 
         self.device = device
         
@@ -53,6 +53,10 @@ class OledWorker(threading.Thread):
 
         self.ot = OledText(self.device, headerlines=header, footerlines=footer,
                            debug=debug)
+        if not self.ot.enable:
+            self.logger.error('OledText is not available')
+            raise RuntimeError
+        
         self.zenkakuflag = False
         self.logger.debug('self.zenkakuflag = %s', self.zenkakuflag)
         super().__init__()
@@ -269,16 +273,16 @@ class OledHandler(socketserver.StreamRequestHandler):
 #   main関数の server.serve_forever() でメインループを開始する
 #
 class OledServer(socketserver.TCPServer):
-    DEF_PORT_NUM = 12345
+    DEF_PORT = 12345
     allow_reuse_address = True
 
-    def __init__(self, device='ssd1306', handler=None, worker=None, port_num=0,
-                 header=0, footer=0, debug=False):
+    def __init__(self, device='ssd1306', header=0, footer=0, port=DEF_PORT,
+                 handler=OledHandler, worker=OledWorker, debug=False):
         self.logger = init_logger(__class__.__name__, debug)
-        self.logger.debug('device   = %s', device)
-        self.logger.debug('port_num = %d', port_num)
-        self.logger.debug('hader    = %d', header)
-        self.logger.debug('footer   = %d', footer)
+        self.logger.debug('device = %s', device)
+        self.logger.debug('hader  = %d', header)
+        self.logger.debug('footer = %d', footer)
+        self.logger.debug('port   = %d', port)
 
         self.device     = device
         self.debug      = debug
@@ -287,13 +291,11 @@ class OledServer(socketserver.TCPServer):
         self.logger.debug('self.worker = %s', self.worker)
         self.worker.start()
         
-        self.port_num	= port_num
-        if self.port_num == 0:
-            self.port_num = __class__.DEF_PORT_NUM
-        self.logger.info('self.port = %d', self.port_num)
+        self.port	= port
+        self.logger.info('self.port = %d', self.port)
 
         self.logger.debug('handler = %s', handler)
-        return super().__init__(('', self.port_num), handler)
+        return super().__init__(('', self.port), handler)
 
     def __del__(self):
         global continueToServe
@@ -304,9 +306,10 @@ class OledServer(socketserver.TCPServer):
             self.worker.end()
 
 #####
+#CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 @click.command(help='OLED display server')
 @click.argument('device', type=str, nargs=1)
-@click.option('--port',   '-p', 'port',   type=int, default=0,
+@click.option('--port',   '-p', 'port',   type=int, default=12345,
               help='port number')
 @click.option('--header', '-h', 'header', type=int, default=0,
               help='header lines')
@@ -324,8 +327,8 @@ def main(device, port, header, footer, debug):
 
     try:
         logger.debug('port=%d', port)
-        server = OledServer(device, OledHandler, OledWorker, port,
-                            header, footer, debug)
+        server = OledServer(device, header, footer, port,
+                            OledHandler, OledWorker, debug=debug)
 
     except Exception as e:
         logger.error('Exception %s %s', type(e), e)

@@ -5,13 +5,12 @@
 
 * OledText(dev='ssd1306, headerlines=0, footerlines=0)
 
-* OledServer(device='ssd1306', handler=None, worker=None, port_num=0, header=0, footer=0, debug=False)
+* OledServer(device='ssd1306', header=0, footer=0, port=DEF_PORT, handler=OledHandler, worker=OledWorker, debug=False)
 
-* OledClient(host='', port=0)
+* OledClient(host='localhost', port=DEF_PORT)
 
 
-# SPI pins
-----
+## SPI pins
 
 | SSD1331      |  0.95'  | 96x64    | 64K color   |
 |-------------:|:-------:|:--------:|:------------|
@@ -20,11 +19,11 @@
 | BCM 9(MISO)  | -       | RST(RES) | BCM 25      |
 | BCM 11(SCLK) | D0(SCL) | CS       | BCM 8 (CE0) |
 
-Reference
-----
+## Reference
+
 * Luma.OLED
 https://luma-oled.readthedocs.io/
-* github
+* Luma.OLED github
 https://github.com/rm-hull/luma.oled/
-* I2C vsx SPI
+* I2C vs. SPI
 https://luma-oled.readthedocs.io/en/latest/hardware.html#i2c-vs-spi

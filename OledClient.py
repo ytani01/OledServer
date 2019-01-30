@@ -28,7 +28,7 @@ class OledClient:
     CMD_PREFIX = '@@@'
     ACK = 'ACK\r\n'.encode('utf-8')
 
-    def __init__(self, host='', port=0):
+    def __init__(self, host=DEF_HOST, port=DEF_PORT):
         self.host, self.port = __class__.DEF_HOST, __class__.DEF_PORT
         if host != '':
             self.host = host

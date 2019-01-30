@@ -115,7 +115,7 @@ class OledText:
         if self.disp == None:
             self.logger.error('invalid device:%s', self.device)
             self.enable = False
-            return None
+            raise RuntimeError
 
         # Create blank image for drawing.
         # Make sure to create image with mode '1' for 1-bit color.
@@ -141,7 +141,7 @@ class OledText:
         self.cur_part = 'body'
         if not self.set_layout(headerlines, footerlines):
             self.enable = False
-            return None
+            raise RuntimeError
 
     def close(self):
         self.disp.cleanup()
@@ -151,6 +151,7 @@ class OledText:
         self.logger.debug('header_lines = %d', header_lines)
         self.logger.debug('footer_lines = %d', footer_lines)
 
+        # part: body, header, footer
         header_start = 0
         body_start   = header_lines
         footer_start = self.disp_rows - footer_lines
