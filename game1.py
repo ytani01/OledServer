@@ -106,6 +106,7 @@ class Ball:
         self.x += self.vx
         self.y += self.vy
 
+        # frame
         if self.x <= 0:
             self.x = 0
             self.vx = -self.vx
@@ -118,6 +119,12 @@ class Ball:
         if self.y >= self.ol.disp.height - 1:
             self.y = self.ol.disp.height - 1
             self.vy = -self.vy
+
+        # bar
+        if abs(self.bar.y - self.y) < 1:
+            if self.x >= self.bar.x - self.bar.l / 2 and \
+               self.x <= self.bar.x + self.bar.l / 2:
+                self.vy = -self.vy
 
         self.lock.release()
 
