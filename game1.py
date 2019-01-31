@@ -124,6 +124,7 @@ class Ball:
         if abs(self.bar.y - self.y) < 1:
             if self.x >= self.bar.x - self.bar.l / 2 and \
                self.x <= self.bar.x + self.bar.l / 2:
+                
                 self.vy = -self.vy
 
         self.lock.release()
