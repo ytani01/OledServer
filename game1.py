@@ -121,10 +121,8 @@ class Ball:
             self.vy = -self.vy
 
         # bar
-        if abs(self.bar.y - self.y) < 1:
-            if self.x >= self.bar.x - self.bar.l / 2 and \
-               self.x <= self.bar.x + self.bar.l / 2:
-                
+        if self.y <= self.bar.y and (self.y + self.vy) >= self.bar.y:
+            if abs(self.x - self.bar.x) <= self.bar.l / 2:
                 self.vy = -self.vy
 
         self.lock.release()
@@ -150,8 +148,10 @@ class App:
         self.logger.debug('pin_re = %s', pin_re)
         self.logger.debug('pin_sw = %d', pin_sw)
 
-        self.dev  = dev
+        GPIO.setmode(GPIO.BCM)
 
+        self.dev  = dev
+        
         self.ol = Oled(self.dev, debug=False)
         self.re = RotaryEncoderListener(pin_re, self.cb_re, debug=False)
 
@@ -170,8 +170,8 @@ class App:
         self.ball  = []
         for i in range(len(self.color['ball'])):
             self.ball.append(Ball(self.ol, self.bar, self.color['ball'][i],
-                              (5, 10), 5, (2, -1),
-                              debug=debug))
+                              (5, 10), 3, (2, -1),
+                              debug=self.debug))
 
         self.frame.draw()
         for i in range(len(self.ball)):
@@ -195,7 +195,7 @@ class App:
         while True:
             for i in range(len(self.ball)):
                 self.ball[i].move()
-            time.sleep(0.1)
+            time.sleep(.1)
 
     def draw(self):
         self.frame.draw()
@@ -215,6 +215,7 @@ class App:
     def finish(self):
         self.logger.debug('')
         self.ol.cleanup()
+        GPIO.cleanup()
 
 #####
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
