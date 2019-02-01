@@ -103,27 +103,81 @@ class Ball:
     def move(self):
         self.lock.acquire()
 
-        self.x += self.vx
-        self.y += self.vy
+        x2 = self.x + self.vx
+        y2 = self.y + self.vy
 
         # frame
-        if self.x <= 0:
-            self.x = 0
+        if x2 < 0:
+            x2 = -x2
             self.vx = -self.vx
-        if self.x >= self.ol.disp.width - 1:
-            self.x = self.ol.disp.width - 1
+        if x2 > self.ol.disp.width - 1:
+            x2 = 2 * self.ol.disp.width - 2 - x2
             self.vx = -self.vx
-        if self.y <= 0:
-            self.y = 0
+        if y2 < 0:
+            y2 = -y2
             self.vy = -self.vy
-        if self.y >= self.ol.disp.height - 1:
-            self.y = self.ol.disp.height - 1
+        if y2 > self.ol.disp.height -1:
+            y2 = 2 * self.ol.disp.height - 2 - y2
             self.vy = -self.vy
 
         # bar
-        if self.y <= self.bar.y and (self.y + self.vy) >= self.bar.y:
-            if abs(self.x - self.bar.x) <= self.bar.l / 2:
-                self.vy = -self.vy
+        if self.y <= self.bar.y and y2 >= self.bar.y:
+            xb = (x2 - self.x) * (self.bar.y - self.y) / (y2 - self.y) + self.x
+            if abs(xb - self.bar.x) <= self.bar.l / 2:
+                # shoot!
+                self.logger.debug('|xb - bar.x| = %f', abs(xb - self.bar.x))
+
+                y2 = 2 * self.bar.y - y2
+                vx2 = self.vx
+                vy2 = -self.vy
+
+                dy = 0.7
+                dx = 1.0
+                vx_min = 0.8
+                vx_max = 5.0
+                vy_min = 0.5
+                vy_max = 6.0
+
+                if abs(xb - self.bar.x) <= 2:
+                    self.logger.debug('A:vy2 = %f', vy2)
+                    vy2 -= dy
+                    
+                if xb > self.bar.x + self.bar.l / 2 - self.bar.l * 0.2:
+                    vx2 = self.vx + dx
+                    vy2 += dy
+                    self.logger.debug('B:vx2,vy2 = %f,%f', vx2, vy2)
+                    if self.vx > 0 and vx2 > vx_max:
+                        vx2 = vx_max
+                        self.logger.debug('C:vx2,vy2 = %f,%f', vx2, vy2)
+                    if self.vx < 0 and vx2 > -vx_min:
+                        vx2 = -vx_min
+                        self.logger.debug('D:vx2,vy2 = %f,%f', vx2, vy2)
+                    
+                if xb < self.bar.x - self.bar.l / 2 + self.bar.l * 0.2:
+                    vx2 = self.vx - dx
+                    vy2 += dy
+                    self.logger.debug('E:vx2,vy2 = %f,%f', vx2, vy2)
+                    if self.vx > 0 and vx2 < vx_min:
+                        vx2 = vx_min
+                        self.logger.debug('F:vx2,vy2 = %f,%f', vx2, vy2)
+                    if self.vx < 0 and vx2 < -vx_max:
+                        vx2 = -vx_max
+                        self.logger.debug('G:vx2,vy2 = %f,%f', vx2, vy2)
+                    
+                if vy2 < -vy_max:
+                    vy2 = -vy_max
+                    self.logger.debug('H:vy2 = %f', vy2)
+                if vy2 > -vy_min:
+                    vy2 = -vy_min
+                    self.logger.debug('I:vy2 = %f', vy2)
+
+                self.vx = vx2
+                self.vy = vy2
+                    
+                self.logger.debug('v = (%f, %f)', self.vx, self.vy)
+
+        self.x = x2
+        self.y = y2
 
         self.lock.release()
 
@@ -170,7 +224,7 @@ class App:
         self.ball  = []
         for i in range(len(self.color['ball'])):
             self.ball.append(Ball(self.ol, self.bar, self.color['ball'][i],
-                              (5, 10), 3, (2, -1),
+                              (5, 10), 3, (2, -2),
                               debug=self.debug))
 
         self.frame.draw()
