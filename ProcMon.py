@@ -27,19 +27,17 @@ class ProcMon:
     DEF_OLED_SERVER = 'localhost'
     DEF_OLED_PORT   = 12345
 
-    def __init__(self, keyword, oled='', oled_server='', oled_port=0):
+    def __init__(self, keyword, oled_part='', oled_server='', oled_port=0):
         self.keyword     = keyword
-        self.oled        = oled
+        self.oled_part   = oled_part
         self.oled_server = oled_server
         self.oled_port   = oled_port
 
-        self.oled_part = 'body'
-        if self.oled == '':
-            self.oled_part = ''
-        else:
-            if self.oled[0] == 'h':
+        if self.oled_part != '':
+            self.oled_part = 'body'
+            if self.oled_part[0] == 'h':
                 self.oled_part = 'header'
-            if self.oled[0] == 'f':
+            if self.oled_part[0] == 'f':
                 self.oled_part = 'footer'
             
         if self.oled_server != '':
@@ -183,7 +181,7 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
               help='interval sec')
 @click.option('--count', '-c', 'count', type=int, default=0,
               help='count')
-@click.option('--oled', '-o', 'oled', type=str, default='',
+@click.option('--oled-part', '--oled', '-o', 'oled_part', type=str, default='',
               help='OLED switch: body/header/footer')
 @click.option('--oled-server', '-os', 'oled_server', type=str,
               default='localhost',
@@ -192,7 +190,7 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
               help='OLED server\'s port number')
 @click.option('--debug', '-d', 'debug', is_flag=True, default=False,
               help='debug flag')
-def main(keyword, interval, count, oled, oled_server, oled_port, debug):
+def main(keyword, interval, count, oled_part, oled_server, oled_port, debug):
     '''
 Process Monitor
 
@@ -208,14 +206,14 @@ Arguments:
     if debug:
         logger.setLevel(DEBUG)
 
-    logger.debug('keyword=\'%s\', oled=%s, oled_server=\'%s\', oled_port=%d',
-                 keyword, oled, oled_server, oled_port)
+    logger.debug('keyword=\'%s\', oled_part=%s, oled_server=\'%s\', oled_port=%d',
+                 keyword, oled_part, oled_server, oled_port)
     
     prev_statstr = ''
 
     i = 0
     while True:
-        with ProcMon(list(keyword), oled, oled_server, oled_port) as pm:
+        with ProcMon(list(keyword), oled_part, oled_server, oled_port) as pm:
             statstr = pm.get_statstr(True)
             logger.debug('statstr=%s, prev_statstr=%s', statstr, prev_statstr)
             if statstr != prev_statstr:
