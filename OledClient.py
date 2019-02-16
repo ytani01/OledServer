@@ -28,6 +28,7 @@ def get_logger(name, debug=False):
 
     return l
 
+
 #####
 class OledClient:
     DEF_HOST = 'localhost'
@@ -36,16 +37,20 @@ class OledClient:
     CMD_PREFIX = '@@@'
     ACK = 'ACK\r\n'.encode('utf-8')
 
-    def __init__(self, host='', port=0, debug=False):
-        self.logger = get_logger(__class__.__name__, debug)
+    def __init__(self, host=DEF_HOST, port=DEF_PORT, debug=False):
+        self.debug = debug
+        self.logger = get_logger(__class__.__name__, self.debug)
         self.logger.debug('host=%s, port=%d', host, port)
-
+        
         self.host = __class__.DEF_HOST
         self.port = __class__.DEF_PORT
         if host != '':
             self.host = host
         if port != 0:
             self.port = port
+
+        self.logger.debug('(\'%s\',%d): self.host=\'%s\', self.port=%d',
+                          host, port, self.host, self.port)
 
     # for 'with' statement
     def __enter__(self):
@@ -68,7 +73,7 @@ class OledClient:
             self.port = port
             
         self.logger.debug('(\'%s\',%d): self.host=\'%s\', self.port=%d',
-                     host, port, self.host, self.port)
+                          host, port, self.host, self.port)
         try:
             self.tn = telnetlib.Telnet(self.host, self.port)
             ack = self.wait_ack()
@@ -175,6 +180,7 @@ def main(text, host, port, clockmode, debug):
         logger.setLevel(DEBUG)
 
     myip = ipaddr().ip_addr()
+    logger.debug('myip = %s', myip)
 
     if clockmode > 0:
         try:
