@@ -14,11 +14,19 @@ logger.setLevel(DEBUG)
 console_handler = StreamHandler()
 console_handler.setLevel(DEBUG)
 #handler_fmt = Formatter('%(asctime)s %(name)s %(levelname)s %(message)s')
-handler_fmt = Formatter('%(asctime)s %(levelname)s %(funcName)s() %(message)s',
+handler_fmt = Formatter('%(asctime)s %(levelname)s %(name)s:%(funcName)s> %(message)s',
                         datefmt='%H:%M:%S')
 console_handler.setFormatter(handler_fmt)
 logger.addHandler(console_handler)
 logger.propagate = False
+def get_logger(name, debug=False):
+    l = logger.getChild(name)
+    if debug:
+        l.setLevel(DEBUG)
+    else:
+        l.setLevel(INFO)
+
+    return l
 
 #####
 class OledClient:
@@ -28,48 +36,50 @@ class OledClient:
     CMD_PREFIX = '@@@'
     ACK = 'ACK\r\n'.encode('utf-8')
 
-    def __init__(self, host='', port=0):
-        self.host, self.port = __class__.DEF_HOST, __class__.DEF_PORT
+    def __init__(self, host='', port=0, debug=False):
+        self.logger = get_logger(__class__.__name__, debug)
+        self.logger.debug('host=%s, port=%d', host, port)
+
+        self.host = __class__.DEF_HOST
+        self.port = __class__.DEF_PORT
         if host != '':
             self.host = host
         if port != 0:
             self.port = port
 
-        logger.debug('(\'%s\',%d): self.host=\'%s\', self.port=%d',
-                     host, port, self.host, self.port)
-
     # for 'with' statement
     def __enter__(self):
-        logger.debug('()')
+        self.logger.debug('')
         self.open()
-        logger.debug('done')
+        self.logger.debug('done')
         return self
     
     # for 'with' statement
     def __exit__(self, ex_type, ex_value, trace):
-        logger.debug('(%s,%s,%s)', ex_type, ex_value, trace)
+        self.logger.debug('(%s,%s,%s)', ex_type, ex_value, trace)
         self.close()
-        logger.debug('(%s,%s,%s):done', ex_type, ex_value, trace)
+        self.logger.debug('(%s,%s,%s):done', ex_type, ex_value, trace)
 
     def open(self, host='', port=0):
+        
         if host != '':
             self.host = host
         if port != 0:
             self.port = port
             
-        logger.debug('(\'%s\',%d): self.host=\'%s\', self.port=%d',
+        self.logger.debug('(\'%s\',%d): self.host=\'%s\', self.port=%d',
                      host, port, self.host, self.port)
         try:
             self.tn = telnetlib.Telnet(self.host, self.port)
             ack = self.wait_ack()
-            logger.debug('tn=%s, wait_ack():%s', self.tn, ack)
+            self.logger.debug('tn=%s, wait_ack():%s', self.tn, ack)
         except Exception as e:
             self.tn = None
-            logger.error('%s, %s', type(e), e)
+            self.logger.error('%s, %s', type(e), e)
             raise(e)
 
     def close(self):
-        logger.debug('()')
+        self.logger.debug('()')
         if self.tn:
             self.tn.close()
         self.tn = None
@@ -77,19 +87,19 @@ class OledClient:
     def send(self, text):
         try:
             self.tn.write((text + '\r\n').encode('utf-8'))
-            logger.debug('\'%s\'', text)
+            self.logger.debug('\'%s\'', text)
             if not self.wait_ack():
                 return False
         except Exception as e:
-            logger.error('send> %s:%s', type(e), e)
+            self.logger.error('send> %s:%s', type(e), e)
             return False
         return True
 
     def wait_ack(self, timeout=2):
         ret = self.tn.read_until(__class__.ACK, timeout)
-        logger.debug('%s', ret)
+        self.logger.debug('%s', ret)
         if ret == b'':
-            logger.error('timeout')
+            self.logger.error('timeout')
             return False
         return True
 
@@ -116,10 +126,10 @@ def clock_mode(host, port, myip, mode=1, sec=2):
     while True:
         count += 1
         str_time = time.strftime('%H:%M')
-        logger.debug('count=%d, %s', count, time.strftime('%H:%M:%S'))
+        self.logger.debug('count=%d, %s', count, time.strftime('%H:%M:%S'))
 
         if str_time != prev_str_time:
-            logger.info('update server time[%d] %s', count, str_time)
+            self.logger.info('update server time[%d] %s', count, str_time)
 
             oc.open()
 
