@@ -1,5 +1,7 @@
 BINDIR=/home/pi/bin
 LOGDIR=/home/pi/tmp
 
-@reboot		sleep 10; ${BINDIR}/boot-OledServer.sh > ${LOGDIR}/boot-OledServer.log 2>&1 &
-@reboot		sleep 15; ${BINDIR}/boot-OledClient.sh > ${LOGDIR}/boot-OledClient.log 2>&1 &
+@reboot	sleep 10; ${BINDIR}/boot-OledServer.sh ssd1306 > ${LOGDIR}/boot-OledServer.log 2>&1 &
+@reboot	sleep 20; ${BINDIR}/ProcMon.py -o '^node :Node.js' '^node-red:Node-RED' 'lircd:LIRC daemon' lirc-analyze mode2 > ${LOGDIR}/ProcMon.log 2>&1 &
+@reboot	sleep 20; ${BINDIR}/boot-OledClient.sh > ${LOGDIR}/boot-OledClient.log 2>&1 &
+#@reboot		sleep 20; ${BINDIR}/lirc-analyze.py -fno > /tmp/ir.out 2>&1 &

@@ -10,7 +10,7 @@ from ipaddr import ipaddr
 
 from logging import getLogger, StreamHandler, Formatter, DEBUG, INFO, WARN
 logger = getLogger(__name__)
-logger.setLevel(DEBUG)
+logger.setLevel(INFO)
 console_handler = StreamHandler()
 console_handler.setLevel(DEBUG)
 #handler_fmt = Formatter('%(asctime)s %(name)s %(levelname)s %(message)s')
@@ -120,44 +120,39 @@ class OledClient:
 
 #####
 def clock_mode(host, port, myip, mode=1, sec=2):
-    count = 0
     prev_str_time = ''
-    oc = OledClient(host, port)
     while True:
-        count += 1
         str_time = time.strftime('%H:%M')
         self.logger.debug('count=%d, %s', count, time.strftime('%H:%M:%S'))
 
         if str_time != prev_str_time:
             self.logger.info('update server time[%d] %s', count, str_time)
 
-            oc.open()
-
-            # header
-            oc.part('header')
-            #oc.clear()
-            oc.crlf(False)
-            oc.zenkaku(False)
-            oc.row(0)
-            oc.send('@DATE@  @H@:@M@')
-            if mode == 1:
-                oc.zenkaku(True)
-                oc.row(1)
-                oc.send(myip)
-
-            # footer
-            if mode == 2:
-                oc.part('footer')
-                #oc.clear()
+            with OledClient(host, port) as oc:
+                # header
+                oc.part('header')
+                oc.clear()
                 oc.crlf(False)
-                oc.zenkaku(True)
+                oc.zenkaku(False)
                 oc.row(0)
-                oc.send(myip)
-            
-            # body
-            oc.part('body')
-            oc.crlf(True)
-            oc.close()
+                oc.send('@DATE@  @H@:@M@ ')
+                if mode == 1:
+                    oc.zenkaku(True)
+                    oc.row(1)
+                    oc.send(myip)
+
+                # footer
+                if mode == 2:
+                    oc.part('footer')
+                    oc.clear()
+                    oc.crlf(False)
+                    oc.zenkaku(True)
+                    oc.row(0)
+                    oc.send(myip)
+
+                # body
+                oc.part('body')
+                oc.crlf(True)
 
             prev_str_time = str_time
 
@@ -188,9 +183,14 @@ def main(text, host, port, clockmode, debug):
             logger.error(e)
             logger.warn('exit(0)')
             sys.exit(0)
+
+    if text != '':
+        with OledClient(host, port) as oc:
+            oc.send(text)
+
+        sys.exit(0)
         
-    if text == '':
-        text = 'Hello, world !'
+    text = 'Hello, world !'
     logger.debug('text=%s', text)
         
     ### open/close
@@ -205,7 +205,7 @@ def main(text, host, port, clockmode, debug):
     oc.send(text)
     oc.close()
 
-    #time.sleep(2)
+    time.sleep(2)
     
     ### with .. as ..
     with OledClient(host, port) as oc:
@@ -220,12 +220,15 @@ def main(text, host, port, clockmode, debug):
 
         oc.part('body')
         oc.crlf(True)
+        oc.clear()
         for i in range(3):
-            oc.clear()
             oc.zenkaku(False)
             oc.send('ABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞ')
             oc.zenkaku(True)
             oc.send(myip)
+            time.sleep(2)
+            oc.send('---')
+            time.sleep(2)
         
 if __name__ == '__main__':
     main()

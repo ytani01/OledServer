@@ -16,11 +16,19 @@ logger = getLogger(__name__)
 logger.setLevel(INFO)
 handler = StreamHandler()
 handler.setLevel(DEBUG)
-handler_fmt = Formatter('%(asctime)s %(levelname)s %(funcName)s> %(message)s',
-                        datefmt='%H:%M:%S')
+handler_fmt = Formatter(
+    '%(asctime)s %(levelname)s %(name)s.%(funcName)s> %(message)s',
+    datefmt='%H:%M:%S')
 handler.setFormatter(handler_fmt)
 logger.addHandler(handler)
 logger.propagate = False
+def init_logger(name, debug):
+    l = logger.getChild(name)
+    if debug:
+        l.setLevel(DEBUG)
+    else:
+        l.setLevel(INFO)
+    return l
 
 #
 # ワーカースレッド
@@ -33,11 +41,24 @@ logger.propagate = False
 class OledWorker(threading.Thread):
     CMD_PREFIX = '@@@'
     
-    def __init__(self, header=0, footer=0):
+    def __init__(self, device='ssd1306', header=0, footer=0, debug=False):
+        self.logger = init_logger(__class__.__name__, debug)
+        self.logger.debug('device = %s', device)
+        self.logger.debug('header = %d', header)
+        self.logger.debug('footer = %d', footer)
+
+        self.device = device
+        
         self.msgq = queue.Queue()
 
-        self.ot = OledText(headerlines=header, footerlines=footer)
+        self.ot = OledText(self.device, headerlines=header, footerlines=footer,
+                           debug=debug)
+        if not self.ot.enable:
+            self.logger.error('OledText is not available')
+            raise RuntimeError
+        
         self.zenkakuflag = False
+        self.logger.debug('self.zenkakuflag = %s', self.zenkakuflag)
         super().__init__()
 
     def set_zenkaku(self, flag):
@@ -55,28 +76,29 @@ class OledWorker(threading.Thread):
 
     def recv(self):
         msg = self.msgq.get()
-        logger.debug('%s> msg = %s' , __class__.__name__, msg)
+        self.logger.debug('msg = %s', msg)
         return msg['type'], msg['content']
         
     def msg_empty(self):
         return self.msgq.empty()
 
     def end(self):
-        logger.debug('%s', __class__.__name__)
+        self.logger.debug('')
         self.send_cmd('end')
-        logger.debug('%s join(): waiting', __class__.__name__)
+        self.logger.debug('send cmd \'end\'')
         self.join()
+        self.logger.debug('join(): done')
 
     def run(self):
         while True:
             if self.msg_empty():
-                logger.debug('%s> wait msg ..', __class__.__name__)
+                self.ot._display(True)
+                self.logger.debug('wait msg ..')
 
             msg_type, msg_content = self.recv()
 
             if msg_type == 'cmd' and msg_content == 'end':
-                logger.debug('%s> recv (%s:%s)',
-                             __class__.__name__, msg_type, msg_content)
+                self.logger.debug('recv (%s:%s)', msg_type, msg_content)
                 break
 
             #
@@ -86,8 +108,7 @@ class OledWorker(threading.Thread):
             if len(args) > 0:
                 if args.pop(0) == __class__.CMD_PREFIX:
                     cmd = args.pop(0)
-                    logger.debug('%s> recv special command: %s %s', __class__.__name__,
-                                 cmd, args)
+                    self.logger.debug('recv special command: %s %s', cmd, args)
                     if cmd == 'zenkaku':
                         self.ot.set_zenkaku(True)
                         if len(args) > 0:
@@ -114,19 +135,21 @@ class OledWorker(threading.Thread):
                         self.ot.set_part(cmd)
                         continue
                     if cmd == 'clear':
-                        self.ot.clear()
+                        self.ot.clear(display_now=False)
                         continue
                 
             # server side variable
-            msg_content = msg_content.replace('@DATE@', time.strftime('%Y/%m/%d(%a)'))
-            msg_content = msg_content.replace('@TIME@', time.strftime('%H:%M:%S'))
+            msg_content = msg_content.replace('@DATE@',
+                                              time.strftime('%Y/%m/%d(%a)'))
+            msg_content = msg_content.replace('@TIME@',
+                                              time.strftime('%H:%M:%S'))
             msg_content = msg_content.replace('@IFNAME@', ipaddr().if_name())
             msg_content = msg_content.replace('@IPADDR@', ipaddr().ip_addr())
             for ch in 'YmdaHMS':
                 msg_content = msg_content.replace('@' + ch + '@',
                                                   time.strftime('%' + ch))
 
-            self.ot.print(msg_content)
+            self.ot.print(msg_content, display_now=False)
 
             time.sleep(0.01)
             
@@ -143,11 +166,15 @@ class OledWorker(threading.Thread):
 class OledHandler(socketserver.StreamRequestHandler):
     ACK = 'ACK\r\n'.encode('utf-8')
 
+    def setup(self):
+        self.logger = init_logger(__class__.__name__, self.server.debug)
+        super().setup()
+        
     def write(self, msg):
         try:
             self.wfile.write(msg)
         except:
-            logger.error('%s> write(): Error !', __class__.__name__)
+            self.logger.error('write(): Error !')
 
     def send_ack(self):
         self.write(__class__.ACK)
@@ -172,7 +199,7 @@ class OledHandler(socketserver.StreamRequestHandler):
             if int(b) == 0xff:
                 f = True
             if f:
-                logger.debug('TELNET code: %02X', int(b))
+                self.logger.debug('TELNET code: %02X', int(b))
                 if int(b) == 0x06:
                     f = False
         
@@ -181,17 +208,14 @@ class OledHandler(socketserver.StreamRequestHandler):
             byte_data = byte_data.replace(code,
                                           TELNET_TO_BYTE[code])
         if byte_data != byte_data0:
-            logger.debug('%s>%s> byte_data0: \n%s',
-                         __class__.__name__, 'getline', byte_data0)
-            logger.debug('%s>%s> byte_data: \n%s',
-                         __class__.__name__, 'getline', byte_data)
+            self.logger.debug('byte_data0: \n%s', byte_data0)
+            self.logger.debug('byte_data: \n%s',  byte_data)
 
         try:
             line = byte_data.decode('utf-8', errors='ignore')
         except UnicodeDecodeError:
             ### XXX デコードエラーへの対応: TBD ###
-            logger.error('%s>%s> UnicodeDecodeError ignored: %s',
-                         __class__.__name__, 'getline', byte_data)
+            self.logger.error('UnicodeDecodeError ignored: %s', byte_data)
 
         return line.rstrip()
 
@@ -199,7 +223,7 @@ class OledHandler(socketserver.StreamRequestHandler):
         global continueToServe
         
         self.send_ack()
-        logger.info('%s> Connected', __class__.__name__)
+        self.logger.debug('Connected')
 
         while True:
             #
@@ -210,36 +234,36 @@ class OledHandler(socketserver.StreamRequestHandler):
                 net_data = self.rfile.readline()
 
             except ConnectionResetError:
-                logger.error('%s> ConnectionResetError', __class__.__name__)
+                self.logger.error('ConnectionResetError')
                 break
             except KeyboardInterrupt:
-                logger.warn('%s> KeyboardInterrupt', __class__.__name__)
+                self.logger.warn('KeyboardInterrupt')
                 continueToServe = False
                 break
 
             #logger.debug('%s> net_data: \n%s', __class__.__name__, net_data)
             
             if len(net_data) == 0:
-                logger.info('%s> Connection closed', __class__.__name__)
+                self.logger.debug('Connection closed')
                 break
 
             if not self.server.worker.is_alive():
-                logger.debug('%s> worker is dead', __class__.__name__)
+                self.logger.debug('worker is dead')
                 continueToServe = False
                 break
 
             # decode and something to do
             line = self.getline(net_data)
-            logger.debug('%s> line=\'%s\'', __class__.__name__, line)
+            self.logger.debug('line=\'%s\'', line)
             
             # send message to worker
             self.server.worker.send_msg(line)
 
             # replay ack
             self.send_ack()
-            logger.debug('%s> replay ACK', __class__.__name__)
+            self.logger.debug('replay ACK')
 
-        logger.debug('%s> handle() done', __class__.__name__)
+        self.logger.debug('done')
             
 #
 # サーバークラス
@@ -249,32 +273,43 @@ class OledHandler(socketserver.StreamRequestHandler):
 #   main関数の server.serve_forever() でメインループを開始する
 #
 class OledServer(socketserver.TCPServer):
-    DEF_PORT_NUM = 12345
+    DEF_PORT = 12345
     allow_reuse_address = True
 
-    def __init__(self, handler, worker, port_num=0, header=0, footer=0):
-        self.worker	= worker(header, footer)
-        self.worker.start()
-        logger.debug('%s> worker:%s', __class__.__name__, worker.__name__)
-        
-        self.port_num	= port_num
-        if self.port_num == 0:
-            self.port_num = __class__.DEF_PORT_NUM
-        logger.info('%s> port=%d', __class__.__name__, self.port_num)
+    def __init__(self, device='ssd1306', header=0, footer=0, port=DEF_PORT,
+                 handler=OledHandler, worker=OledWorker, debug=False):
+        self.logger = init_logger(__class__.__name__, debug)
+        self.logger.debug('device = %s', device)
+        self.logger.debug('hader  = %d', header)
+        self.logger.debug('footer = %d', footer)
+        self.logger.debug('port   = %d', port)
 
-        logger.debug('%s> handler:%s', __class__.__name__, handler.__name__)
-        return super().__init__(('', self.port_num), handler)
+        self.device     = device
+        self.debug      = debug
+        
+        self.worker	= worker(self.device, header, footer, debug=debug)
+        self.logger.debug('self.worker = %s', self.worker)
+        self.worker.start()
+        
+        self.port	= port
+        self.logger.info('self.port = %d', self.port)
+
+        self.logger.debug('handler = %s', handler)
+        return super().__init__(('', self.port), handler)
 
     def __del__(self):
         global continueToServe
 
-        logger.debug('%s>', __class__.__name__)
+        self.logger.debug('')
         continueToServer = False
-        self.worker.end()
+        if hasattr(self, 'worker'):
+            self.worker.end()
 
 #####
+#CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 @click.command(help='OLED display server')
-@click.option('--port',   '-p', 'port',   type=int, default=0,
+@click.argument('device', type=str, nargs=1)
+@click.option('--port',   '-p', 'port',   type=int, default=12345,
               help='port number')
 @click.option('--header', '-h', 'header', type=int, default=0,
               help='header lines')
@@ -282,7 +317,7 @@ class OledServer(socketserver.TCPServer):
               help='footer lines')
 @click.option('--debug', '-d', 'debug', is_flag=True, default=False,
               help='debug flag')
-def main(port, header, footer, debug):
+def main(device, port, header, footer, debug):
     global continueToServe
     continueToServe = True
 
@@ -292,7 +327,8 @@ def main(port, header, footer, debug):
 
     try:
         logger.debug('port=%d', port)
-        server = OledServer(OledHandler, OledWorker, port, header, footer)
+        server = OledServer(device, header, footer, port,
+                            OledHandler, OledWorker, debug=debug)
 
     except Exception as e:
         logger.error('Exception %s %s', type(e), e)
