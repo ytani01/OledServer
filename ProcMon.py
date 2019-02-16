@@ -20,6 +20,15 @@ handler_fmt = Formatter('%(asctime)s %(levelname)s %(name)s %(funcName)s> %(mess
 handler.setFormatter(handler_fmt)
 logger.addHandler(handler)
 logger.propagate = False
+def get_logger(name, debug=False):
+    l = logger.getChild(name)
+    if debug:
+        l.setLevel(DEBUG)
+    else:
+        l.setLevel(INFO)
+        
+    return l
+
 
 #####
 class ProcMon:
@@ -27,18 +36,23 @@ class ProcMon:
     DEF_OLED_SERVER = 'localhost'
     DEF_OLED_PORT   = 12345
 
-    def __init__(self, keyword, oled_part='', oled_server='', oled_port=0):
+    def __init__(self, keyword, oled_part='', oled_server='', oled_port='body',
+                 debug=False):
+        self.debug  = debug
+        self.logger = get_logger(__class__.__name__, self.debug)
+
         self.keyword     = keyword
         self.oled_part   = oled_part
         self.oled_server = oled_server
         self.oled_port   = oled_port
 
-        if self.oled_part != '':
+        if self.oled_part == '':
             self.oled_part = 'body'
-            if self.oled_part[0] == 'h':
-                self.oled_part = 'header'
-            if self.oled_part[0] == 'f':
-                self.oled_part = 'footer'
+
+        if self.oled_part[0] == 'h':
+            self.oled_part = 'header'
+        if self.oled_part[0] == 'f':
+            self.oled_part = 'footer'
             
         if self.oled_server != '':
             self.oled_server	= __class__.DEF_OLED_SERVER
@@ -47,7 +61,7 @@ class ProcMon:
 
         self.myname	= sys.argv[0]
         self.pid	= os.getpid()
-        logger.debug('self.myname=%s, pid=%d', self.myname, self.pid)
+        self.logger.debug('self.myname=%s, pid=%d', self.myname, self.pid)
         
         self.proc	= subprocess.Popen(__class__.CMD_PS,
                                            stdout=subprocess.PIPE,
@@ -56,12 +70,12 @@ class ProcMon:
         self.cmd_pid	= self.proc.pid
         [out, err]	= self.proc.communicate()
         if self.proc.returncode != 0:
-            logger.error('stderr=%s', err)
+            self.logger.error('stderr=%s', err)
             return None
 
         # returncode == 0
         self.stdout = [l.split() for l in out.splitlines()]
-        #logger.debug('self.stdout=%s', self.stdout)
+        #self.logger.debug('self.stdout=%s', self.stdout)
         self.stdout.pop(0)	# ignore first line
         self.psout = []
         for l in self.stdout:
@@ -71,11 +85,11 @@ class ProcMon:
             tm	= l[9]
             cmd	= ' '.join(l[10:])
             if pid == self.pid or pid == self.cmd_pid:
-                logger.debug('ignore: %d %s', pid, cmd)
+                self.logger.debug('ignore: %d %s', pid, cmd)
                 continue
             self.psout.append({'pid':pid, 'cpu':cpu, 'mem':mem, 'time':tm,
                                'cmd':cmd})
-        #logger.debug('psout=%s', self.psout)
+        #self.logger.debug('psout=%s', self.psout)
 
         self.find_list = {}
         if len(self.keyword) > 0:
@@ -92,14 +106,14 @@ class ProcMon:
                         break
         else:
             self.find_list[''] = list(self.psout)
-        logger.debug('find_list=%s', self.find_list)
+        self.logger.debug('find_list=%s', self.find_list)
 
     def __enter__(self):
         self.open()
         return self
 
     def __exit__(self, ex_type, ex_value, trace):
-        logger.debug('(%s, %s, %s)', ex_type, ex_value, trace)
+        self.logger.debug('(%s, %s, %s)', ex_type, ex_value, trace)
         self.close()
 
     def open(self):
@@ -181,7 +195,8 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
               help='interval sec')
 @click.option('--count', '-c', 'count', type=int, default=0,
               help='count')
-@click.option('--oled-part', '--oled', '-o', 'oled_part', type=str, default='',
+@click.option('--oled-part', '--oled', 'oled_part', type=str,
+              default='body',
               help='OLED switch: body/header/footer')
 @click.option('--oled-server', '-os', 'oled_server', type=str,
               default='localhost',
@@ -200,20 +215,18 @@ Arguments:
     '<regular expression>[:disp_str]'
     '''
     
-    global logger
-
     logger.setLevel(INFO)
     if debug:
         logger.setLevel(DEBUG)
 
-    logger.debug('keyword=\'%s\', oled_part=%s, oled_server=\'%s\', oled_port=%d',
+    logger.debug('keyword=\'%s\',oled_part=%s,oled_server=\'%s\',oled_port=%d',
                  keyword, oled_part, oled_server, oled_port)
     
     prev_statstr = ''
 
     i = 0
     while True:
-        with ProcMon(list(keyword), oled_part, oled_server, oled_port) as pm:
+        with ProcMon(list(keyword), oled_part, oled_server, oled_port, debug=debug) as pm:
             statstr = pm.get_statstr(True)
             logger.debug('statstr=%s, prev_statstr=%s', statstr, prev_statstr)
             if statstr != prev_statstr:
