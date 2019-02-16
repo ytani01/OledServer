@@ -128,10 +128,10 @@ def clock_mode(host, port, myip, mode=1, sec=2):
     prev_str_time = ''
     while True:
         str_time = time.strftime('%H:%M')
-        self.logger.debug('count=%d, %s', count, time.strftime('%H:%M:%S'))
+        logger.debug('%s', time.strftime('%H:%M:%S'))
 
         if str_time != prev_str_time:
-            self.logger.info('update server time[%d] %s', count, str_time)
+            logger.info('update server time: %s', str_time)
 
             with OledClient(host, port) as oc:
                 # header
