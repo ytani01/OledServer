@@ -7,6 +7,7 @@ import threading
 import RPi.GPIO as GPIO
 from luma.core.interface.serial import i2c, spi
 from luma.core.render import canvas
+from luma.core import error
 from luma.oled.device import ssd1306, ssd1327, ssd1331
 from PIL import Image, ImageDraw, ImageFont
 
@@ -164,7 +165,14 @@ SPI pins
 
         if img == None:
             img = self.image
-        self.disp.display(img)
+
+        while True:
+            try:
+                self.disp.display(img)
+                break
+            except (OSError, error.DeviceNotFoundError) as e:
+                self.logger.error('%s:%s', type(e), e)
+                time.sleep(0.1)
 
     def loadImagefile(self, imgfile, display_now=False, clear_flag=False):
         self.logger.debug('imgfile = %s', imgfile)
@@ -215,7 +223,8 @@ class BG:
 
     def draw(self):
         xy = [(self.x1, self.y1), (self.x2, self.y2)]
-        self.ol.draw.rectangle(xy, outline=self.color, width=self.w, fill=0)
+        #self.ol.draw.rectangle(xy, outline=self.color, width=self.w, fill=0)
+        self.ol.draw.rectangle(xy, outline=self.color, fill=0)
         
 class Ball:
     def __init__(self, ol, color, xy, r, vxy=(0, 0), debug=False):
