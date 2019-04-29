@@ -136,7 +136,8 @@ SPI pins
             self.SPI_MODE = 0b11
             self.serial = SPI.SpiDev(self.param1, self.param2)
             self.disp   = st7789(spi=self.serial, mode=self.SPI_MODE,
-                                 rst=self.SPI_RST, dc=self.SPI_DC, led=self.SPI_CS)
+                                 rst=self.SPI_RST, dc=self.SPI_DC,
+                                 led=self.SPI_CS)
             self.disp_size = (self.disp.width, self.disp.height)
             self.mode   = 'RGB'
             self.disp.begin()
@@ -170,7 +171,11 @@ SPI pins
             self.logger.debug('OLED is not available')
             return
 
-        self.disp.cleanup()
+        try:
+            self.disp.cleanup()
+        except AttributeError:
+            self.logger.warn('disp.cleanup(): not supported')
+                              
         self.logger.debug('done')
 
     def clear(self, display_now=False):
@@ -245,11 +250,10 @@ class BG:
 
     def draw(self):
         xy = [(self.x1, self.y1), (self.x2, self.y2)]
-        #self.ol.draw.rectangle(xy, outline=self.color, width=self.w, fill=0)
-        self.ol.draw.rectangle(xy, outline=self.color, fill=0)
+        self.ol.draw.rectangle(xy, outline=self.color, fill='black')
         
 class Ball:
-    def __init__(self, ol, color, xy, r, vxy=(0, 0), debug=False):
+    def __init__(self, ol, color, r, xy, vxy=(0, 0), debug=False):
         self.logger = init_logger(__class__.__name__, debug)
         self.debug = debug
         self.logger.debug('color = %s', str(color))
@@ -321,10 +325,10 @@ class Sample:
         self.bg   = BG(self.ol, self.col['bg'], 2, debug=debug)
         self.ball = []
         self.ball.append(Ball(self.ol, self.col['ball'][0],
-                              (5, 10), 5, (2, -1),
+                              7, (5, 10), (2, -1),
                               debug=debug))
         self.ball.append(Ball(self.ol, self.col['ball'][1],
-                              (10, 5), 5, (1, -2),
+                              7, (10, 5), (1, -2),
                               debug=debug))
 
         self.bg.draw()
@@ -336,7 +340,7 @@ class Sample:
         while True:
             for i in range(len(self.ball)):
                 self.ball[i].move()
-            time.sleep(0.1)
+            time.sleep(0.03)
 
     def draw(self):
         self.bg.draw()
