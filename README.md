@@ -9,6 +9,9 @@
 
 * OledClient(host='localhost', port=DEF_PORT)
 
+## Install
+
+TBD
 
 ## SPI pins
 
@@ -19,6 +22,8 @@
 | BCM 9(MISO)  | -       | RST(RES) | BCM 25      |
 | BCM 11(SCLK) | D0(SCL) | CS       | BCM 8 (CE0) |
 
+ST7789: LED=BCM8
+
 ## Reference
 
 * Luma.OLED
@@ -27,3 +32,6 @@ https://luma-oled.readthedocs.io/
 https://github.com/rm-hull/luma.oled/
 * I2C vs. SPI
 https://luma-oled.readthedocs.io/en/latest/hardware.html#i2c-vs-spi
+
+* Python_ST7789
+https://github.com/solinnovay/Python_ST7789

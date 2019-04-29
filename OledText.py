@@ -97,6 +97,7 @@ class OledText:
         self.enable   = True
         self.fontsize = fontsize
         self.rst      = rst
+        self.color    = 'white'
 
         self.trans_tbl = str.maketrans(__class__.TRANS_SRC,
                                        __class__.TRANS_DST)
@@ -175,13 +176,13 @@ class OledText:
         rows = self.part['header'].rows
         if rows > 0:
             y1 = self.ch_h * (rows + 0.5) - 1
-            self.oled.draw.line([(x1, y1), (x2, y1)], fill=255, width=width)
+            self.oled.draw.line([(x1, y1), (x2, y1)], fill=self.color, width=width)
 
         # footer
         rows = self.part['footer'].rows
         if rows > 0:
             y1 = self.oled.disp.height - self.ch_h * (rows + 0.5) - 1
-            self.oled.draw.line([(x1, y1), (x2, y1)], fill=255, width=width)
+            self.oled.draw.line([(x1, y1), (x2, y1)], fill=self.color, width=width)
 
         self._display(display_now)
 
@@ -193,7 +194,7 @@ class OledText:
         y1 = self.ch_h * self.part[part].disp_row
         x2 = self.oled.disp.width - 1
         y2 = y1 + self.ch_h * self.part[part].rows - 1
-        self.oled.draw.rectangle([(x1, y1), (x2, y2)], outline=0, fill=0)
+        self.oled.draw.rectangle([(x1, y1), (x2, y2)], outline=0, fill='black')
         self.logger.debug('clear rectangle (%d,%d),(%d,%d)', x1, y1, x2, y2)
         
     # clear display
@@ -251,9 +252,9 @@ class OledText:
         self.set_part(part, crlf=crlf)
 
     #
-    def _draw_1line(self, disp_row, text, fill=255):
+    def _draw_1line(self, disp_row, text, fill='white'):
         x1, y1 = 0, disp_row * self.ch_h
-        self.oled.draw.text((x1,y1), text, font=self.font, fill=fill)
+        self.oled.draw.text((x1,y1), text, font=self.font, fill=self.color)
         self.logger.debug('draw.text(%d, %d)', x1, y1)
 
     #

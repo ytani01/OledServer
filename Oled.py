@@ -4,11 +4,14 @@
 #
 import time
 import threading
-import RPi.GPIO as GPIO
+import RPi.GPIO as rpigpio
 from luma.core.interface.serial import i2c, spi
 from luma.core.render import canvas
 from luma.core import error
 from luma.oled.device import ssd1306, ssd1327, ssd1331
+import Adafruit_GPIO as GPIO
+import Adafruit_GPIO.SPI as SPI
+from ST7789 import ST7789 as st7789
 from PIL import Image, ImageDraw, ImageFont
 
 import click
@@ -45,11 +48,17 @@ SPI pins
 | BCM 10(MOSI) | D1(SDA) | GND      | GND         |
 | BCM 9(MISO)  | -       | RST(RES) | BCM 25      |
 | BCM 11(SCLK) | D0(SCL) | CS       | BCM 8 (CE0) |
+
+  ST7789: LED = CS = BCM8
+
     '''
 
     DEF_I2C_ADDR = 0x3C
     I2C_DEV = ['ssd1306', 'ssd1327']
-    SPI_DEV = ['ssd1331']
+    SPI_DEV = ['ssd1331', 'st7789']
+    SPI_DC  = 24
+    SPI_RST = 25
+    SPI_CS  = 8
     
     def __init__(self, dev, param1=-1, param2=-1, debug=False):
         self.logger = init_logger(__class__.__name__, debug)
@@ -99,9 +108,10 @@ SPI pins
     def open(self):
         self.logger.debug('')
 
-        GPIO.setwarnings(False)
+        rpigpio.setwarnings(False)
         
         self.disp = None
+        self.disp_size = None
         self.mode = ''
         if self.dev == 'ssd1306':
             if self.param2 == 0:
@@ -122,13 +132,25 @@ SPI pins
             self.disp   = ssd1331(self.serial)
             self.mode   = 'RGB'
             
+        if self.dev == 'st7789':
+            self.SPI_MODE = 0b11
+            self.serial = SPI.SpiDev(self.param1, self.param2)
+            self.disp   = st7789(spi=self.serial, mode=self.SPI_MODE,
+                                 rst=self.SPI_RST, dc=self.SPI_DC, led=self.SPI_CS)
+            self.disp_size = (self.disp.width, self.disp.height)
+            self.mode   = 'RGB'
+            self.disp.begin()
+            
         if self.mode == '':
             self.logger.error('invalid device: %s', self.dev)
             raise RuntimeError('invalid device: %s' % self.dev)
         
         self.disp.persist = True
 
-        self.image = Image.new(self.mode, self.disp.size)
+        if self.disp_size != None:
+            self.image = Image.new(self.mode, self.disp_size)
+        else:
+            self.image = Image.new(self.mode, self.disp.size)
         self.draw  = ImageDraw.Draw(self.image)
 
         #self.clear()
@@ -230,7 +252,7 @@ class Ball:
     def __init__(self, ol, color, xy, r, vxy=(0, 0), debug=False):
         self.logger = init_logger(__class__.__name__, debug)
         self.debug = debug
-        self.logger.debug('color = %d', color)
+        self.logger.debug('color = %s', str(color))
         self.logger.debug('xy    = %s', xy)
         self.logger.debug('r     = %d', r)
         self.logger.debug('vxy   = %s', vxy)
@@ -328,7 +350,7 @@ class Sample:
         while True:
             self.draw()
             self.ol.display()
-            #time.sleep(0.01)
+            time.sleep(0.01)
                 
     def finish(self):
         self.logger.debug('')
@@ -337,7 +359,8 @@ class Sample:
 #####
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 @click.command(context_settings=CONTEXT_SETTINGS)
-@click.argument('dev', type=str, metavar='<ssd1306|ssd1327|ssd1331>', nargs=1)
+@click.argument('dev', type=str, metavar='<ssd1306|ssd1327|ssd1331|st7789>',
+                nargs=1)
 @click.option('--debug', '-d', 'debug', is_flag=True, default=False,
               help='debug flag')
 def main(dev, debug):
