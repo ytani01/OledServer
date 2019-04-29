@@ -1,6 +1,5 @@
 #Adafruit-SSD1306
 #Adafruit-SSD1327
-Adafruit-GPIO
 luma.core
 luma.oled
 mojimoji
@@ -8,3 +7,5 @@ netifaces
 spidev
 Pillow
 RPi.GPIO
+Adafruit-GPIO
+numpy
