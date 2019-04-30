@@ -257,7 +257,7 @@ class BG:
 
         self.bg_img = []
         for img in self.IMGFILE:
-            self.ol.draw.rectangle(xy, outline=self.color, fill='gray')
+            self.ol.draw.rectangle(xy, outline=self.color, fill='black')
             self.ol.loadImagefile(img)
             #self.bg_img.append(self.ol.image)
             self.bg_img.append(copy.copy(self.ol.image))
@@ -266,14 +266,15 @@ class BG:
         self.bg_idx = 0
 
     def draw(self):
-        #xy = [(self.x1, self.y1), (self.x2, self.y2)]
-        #self.ol.draw.rectangle(xy, outline=self.color, fill='white')
-
         now_sec = time.time()
         if now_sec - self.prev_sec > self.INTERVAL_SEC:
             self.bg_idx = (self.bg_idx + 1) % len(self.IMGFILE)
             self.prev_sec = now_sec
         self.ol.image.paste(self.bg_img[self.bg_idx], (0,0))
+
+        for i in range(3):
+            xy = [(self.x1 + i, self.y1 + i), (self.x2 - i, self.y2 - i)]
+            self.ol.draw.rectangle(xy, outline=self.color, fill=None)
         
 class Ball:
     def __init__(self, ol, color, r, xy, vxy=(0, 0), debug=False):
