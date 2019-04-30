@@ -2,7 +2,7 @@
 #
 # (c) 2019 Yoichi Tanibayashi
 #
-import time
+import time, math, copy
 import threading
 import RPi.GPIO as rpigpio
 from luma.core.interface.serial import i2c, spi
@@ -235,6 +235,11 @@ SPI pins
 
 ##### sample application
 class BG:
+    IMGFILE=['rpilogo-2052x2581.png',
+             'image-a.jpg',
+             '01-Alex.jpg']
+    INTERVAL_SEC = 5.0
+    
     def __init__(self, ol, color, w, debug=False):
         self.logger = init_logger(__class__.__name__, debug)
         self.debug = debug
@@ -248,9 +253,27 @@ class BG:
         (self.x1, self.y1) = (0, 0)
         (self.x2, self.y2) = (self.ol.disp.width - 1, self.ol.disp.height - 1)
 
-    def draw(self):
         xy = [(self.x1, self.y1), (self.x2, self.y2)]
-        self.ol.draw.rectangle(xy, outline=self.color, fill='black')
+
+        self.bg_img = []
+        for img in self.IMGFILE:
+            self.ol.draw.rectangle(xy, outline=self.color, fill='gray')
+            self.ol.loadImagefile(img)
+            #self.bg_img.append(self.ol.image)
+            self.bg_img.append(copy.copy(self.ol.image))
+
+        self.prev_sec = 0
+        self.bg_idx = 0
+
+    def draw(self):
+        #xy = [(self.x1, self.y1), (self.x2, self.y2)]
+        #self.ol.draw.rectangle(xy, outline=self.color, fill='white')
+
+        now_sec = time.time()
+        if now_sec - self.prev_sec > self.INTERVAL_SEC:
+            self.bg_idx = (self.bg_idx + 1) % len(self.IMGFILE)
+            self.prev_sec = now_sec
+        self.ol.image.paste(self.bg_img[self.bg_idx], (0,0))
         
 class Ball:
     def __init__(self, ol, color, r, xy, vxy=(0, 0), debug=False):
