@@ -5,8 +5,9 @@
 import pigpio
 import time, math, copy
 import threading
-from ST7789 import ST7789
+from SSD1306 import SSD1306
 from SSD1331 import SSD1331
+from ST7789 import ST7789
 from PIL import Image, ImageDraw, ImageFont
 
 import click
@@ -44,12 +45,13 @@ SPI pins
 | BCM 9(MISO)  | -       | RST(RES) | BCM 25      |
 | BCM 11(SCLK) | D0(SCL) | CS       | BCM 8 (CE0) |
 
-  ST7789: LED = CS = BCM8
+  ST7789: LED = CS = BCM8?
 
     '''
 
-    DEF_I2C_ADDR = 0x3C
     I2C_DEV = ['ssd1306', 'ssd1327']
+    I2C_ADDR = 0x3C
+
     SPI_DEV = ['ssd1331', 'st7789']
     SPI_DC  = 24
     SPI_RST = 25
@@ -80,7 +82,7 @@ SPI pins
 
         if param2 < 0:
             if dev in self.I2C_DEV:
-                self.param2 = self.DEF_I2C_ADDR
+                self.param2 = self.I2C_ADDR
             elif dev in self.SPI_DEV:
                 self.param2 = 0
             else:
@@ -108,15 +110,18 @@ SPI pins
         self.disp_size = None
         self.mode = ''
 
+        if self.dev == 'ssd1306':
+            if self.param2 == 0:
+                self.param2 = self.I2C_ADDR
+            self.disp = SSD1306(self.pi, self.param1, self.param2)
+            self.disp.begin()
+
         if self.dev == 'ssd1331':
             self.disp = SSD1331(self.pi)
-            self.mode = 'RGB'
             self.disp.begin()
-            #self.disp.set_contrast(0xFF)
             
         if self.dev == 'st7789':
             self.disp = ST7789(self.pi)
-            self.mode = 'RGB'
             self.disp.begin()
             
         if self.disp == None:
@@ -124,7 +129,7 @@ SPI pins
             raise RuntimeError('invalid device: %s' % self.dev)
         self.disp.persist = True
 
-        self.image = Image.new(self.mode, self.disp.size)
+        self.image = Image.new(self.disp.color_mode, self.disp.size)
         self.draw  = ImageDraw.Draw(self.image)
 
         #self.clear()
