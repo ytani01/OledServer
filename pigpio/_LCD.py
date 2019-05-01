@@ -3,7 +3,7 @@ import numpy as np
 from PIL import Image
 from PIL import ImageDraw
 
-class LCD:
+class _LCD:
     def __init__(self, pi):
         self.pi = pi
         self.buffer = Image.new('RGB', (self.width, self.height))

@@ -5,7 +5,8 @@
 import pigpio
 import time, math, copy
 import threading
-from ST7789 import ST7789 as st7789
+from ST7789 import ST7789
+from SSD1331 import SSD1331
 from PIL import Image, ImageDraw, ImageFont
 
 import click
@@ -30,9 +31,9 @@ def init_logger(name, debug):
     return l
 
 #####
-class Oled:
+class Lcd:
     '''
-OLED
+LCD
 
 SPI pins
 
@@ -106,12 +107,19 @@ SPI pins
         self.disp = None
         self.disp_size = None
         self.mode = ''
+
+        if self.dev == 'ssd1331':
+            self.disp = SSD1331(self.pi)
+            self.mode = 'RGB'
+            self.disp.begin()
+            #self.disp.set_contrast(0xFF)
+            
         if self.dev == 'st7789':
-            self.disp   = st7789(self.pi)
-            self.mode   = 'RGB'
+            self.disp = ST7789(self.pi)
+            self.mode = 'RGB'
             self.disp.begin()
             
-        if self.mode == '':
+        if self.disp == None:
             self.logger.error('invalid device: %s', self.dev)
             raise RuntimeError('invalid device: %s' % self.dev)
         self.disp.persist = True
@@ -134,7 +142,7 @@ SPI pins
     def cleanup(self):
         self.logger.debug('')
         if not self.available():
-            self.logger.debug('OLED is not available')
+            self.logger.debug('LCD is not available')
             return
 
         try:
@@ -304,12 +312,12 @@ class Sample:
         self.pi   = pigpio.pi()
         self.dev  = dev
 
-        self.ol = Oled(self.pi, self.dev, debug=self.debug)
+        self.ol = Lcd(self.pi, self.dev, debug=self.debug)
 
         self.col = {}
         self.col['bg'] = 255
         self.col['ball'] = [255, 128]
-        if dev in Oled.SPI_DEV:
+        if dev in Lcd.SPI_DEV:
             self.col['bg'] = 0x00ff00 # 'green'
             self.col['ball'] = ['red', 'blue']
             

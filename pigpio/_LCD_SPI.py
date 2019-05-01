@@ -1,9 +1,9 @@
 #
 import pigpio
-from LCD import LCD
+from _LCD import _LCD
 import numbers
 
-class LCD_SPI(LCD):
+class _LCD_SPI(_LCD):
     def __init__(self, pi, ch, baud, flags, rst=25, dc=24):
         self.pi    = pi
         self.ch    = ch
@@ -16,11 +16,6 @@ class LCD_SPI(LCD):
         super().__init__(self.pi)
 
     def send(self, data, is_data=True, chunk_size=4096):
-        """Write a byte or array of bytes to the display. Is_data parameter
-        controls if byte should be interpreted as display data (True) or command
-        data (False).  Chunk_size is an optional size of bytes to write in a
-        single SPI transaction, with a default of 4096.
-        """
         # Set DC low for command, high for data.
         self.pi.write(self.dc, is_data)
         # Convert scalar argument to list so either can be passed as parameter.

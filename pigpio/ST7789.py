@@ -1,6 +1,6 @@
 # ST7789 IPS LCD (240x240) driver
 import pigpio
-from LCD_SPI import LCD_SPI
+from _LCD_SPI import _LCD_SPI
 from PIL import Image
 from PIL import ImageDraw
 import time
@@ -12,97 +12,101 @@ WIDTH    = 240
 HEIGHT   = 240
 
 NOP         = 0x00
-SWRESET     = 0x01
-RDDID       = 0x04
-RDDST       = 0x09
-RDDPM       = 0x0A
-RDDMADCTL   = 0x0B
-RDDCOLMOD   = 0x0C
-RDDIM       = 0x0D
-RDDSM       = 0x0E
-RDDSDR      = 0x0F
+SWRESET     = 0x01 # Sofware Reset
+RDDID       = 0x04 # Read Display ID
+RDDST       = 0x09 # Read Display Status
+RDDPM       = 0x0A # Read Display Power Mode
+RDDMADCTL   = 0x0B # Read Display MADCTL
+RDDCOLMOD   = 0x0C # Read Display Pixel Format
+RDDIM       = 0x0D # Read Display Image Mode
+RDDSM       = 0x0E # Read Display Signal Mode
+RDDSDR      = 0x0F # Read Display Self-Diagnostic Result
 
-SLPIN       = 0x10
-SLPOUT      = 0x11
-PTLON       = 0x12
-NORON       = 0x13
+SLPIN       = 0x10 # Sleep in
+SLPOUT      = 0x11 # Sleep Out
+PTLON       = 0x12 # Partial Display Mode On
+NORON       = 0x13 # Normal Display Mode On
 
-INVOFF      = 0x20
-INVON       = 0x21
-GAMSET      = 0x26
-DISPOFF     = 0x28
-DISPON      = 0x29
-CASET       = 0x2A
-RASET       = 0x2B
-RAMWR       = 0x2C
-RAMRD       = 0x2E
+INVOFF      = 0x20 # Display Inversion Off
+INVON       = 0x21 # Display Inversion On
+GAMSET      = 0x26 # Gamma Set
+DISPOFF     = 0x28 # Display Off
+DISPON      = 0x29 # Display On
+CASET       = 0x2A # Column Address Set
+RASET       = 0x2B # Row Address Set
+RAMWR       = 0x2C # Memory Write
+RAMRD       = 0x2E # Memory Read
 
-PTLAR       = 0x30
-VSCRDEF     = 0x33
-TEOFF       = 0x34
-TEON        = 0x35
-MADCTL      = 0x36
-VSCRSADD    = 0x37
-IDMOFF      = 0x38
-IDMON       = 0x39
-COLMOD      = 0x3A
-RAMWRC      = 0x3C
-RAMRDC      = 0x3E
+PTLAR       = 0x30 # Partial Area
+VSCRDEF     = 0x33 # Vertical Scrolling Definition
+TEOFF       = 0x34 # Tearing Effect Line OFF
+TEON        = 0x35 # Tearing Effect Line ON
+MADCTL      = 0x36 # Memory Data Access Control
+VSCRSADD    = 0x37 # Vertical Scroll Start Address of RAM
+IDMOFF      = 0x38 # Idle Mode Off
+IDMON       = 0x39 # Idle Mode On
+COLMOD      = 0x3A # Interface Pixel Format
+RAMWRC      = 0x3C # Write Memory Continue
+RAMRDC      = 0x3E # Read Memory Continue
 
-TESCAN      = 0x44
-RDTESCAN    = 0x45
+TESCAN      = 0x44 # Set Tear Scanline
+GSCAN       = 0x45 # Get Scanline
 
-WRDISBV     = 0x51
-RDDISBV     = 0x52
-WRCTRLD     = 0x53
-RDCTRLD     = 0x54
-WRCACE      = 0x55
-RDCABC      = 0x56
-WRCABCMB    = 0x5E
-RDCABCMB    = 0x5F
+WRDISBV     = 0x51 # Write Display Brightness
+RDDISBV     = 0x52 # Read Display Brightness Value
+WRCTRLD     = 0x53 # Write CTRL Display
+RDCTRLD     = 0x54 # Read CTRL Display
+WRCACE      = 0x55 # Write Content Adaptive Brightness Control and Color Enhancement
+RDCABC      = 0x56 # Read Content Adaptive Brightness Control
+WRCABCMB    = 0x5E # Write CABC Minimum Brightness
+RDCABCMB    = 0x5F # Read CABC Minimum Brightness
 
-RDABCSDR    = 0x68
+RDABCSDR    = 0x68 # Read Automatic Brightness Control Self-Diagnostic Result
 
-RDID1       = 0xDA
-RDID2       = 0xDB
-RDID3       = 0xDC
+RDID1       = 0xDA # Read ID1
+RDID2       = 0xDB # Read ID2
+RDID3       = 0xDC # Read ID3
 
-RAMCTRL     = 0xB0
-RGBCTRL     = 0xB1
-PORCTRL     = 0xB2
-FRCTRL1     = 0xB3
+RAMCTRL     = 0xB0 # RAM Contrl
+RGBCTRL     = 0xB1 # RGB Interface Control
+PORCTRL     = 0xB2 # Porch Setting
+FRCTRL1     = 0xB3 # Frame Rate Control 1 (In partial mode/idle colors)
+PARCTL      = 0xB5 # Partial Control
+GCTRL       = 0xB7 # Gate Control
+GTADJ       = 0xB8 # Gate On Timing Adjustment
+DGMEN       = 0xBA # Digital Gamma Enable
+VCOMS       = 0xBB # VCOM Setting
+POWSAVE     = 0xBC # Power Saving Mode
+DLPOFFSAVE  = 0xBD # Display off power save
 
-GCTRL       = 0xB7
-DGMEN       = 0xBA
-VCOMS       = 0xBB
+LCMCTRL     = 0xC0 # LCM Control
+IDSET       = 0xC1 # ID Code Setting
+VDVVRHEN    = 0xC2 # VDV and VRH Command Enable
 
-LCMCTRL     = 0xC0
-IDSET       = 0xC1
-VDVVRHEN    = 0xC2
+VRHS        = 0xC3 # VRH Set
+VDVSET      = 0xC4 # VDV Set
+VCMOFSET    = 0xC5 # VCOM Offset Set
+FRCTR2      = 0xC6 # Frame Rate Control in Normal Mode
+CABCCTRL    = 0xC7 # CABC Control
+REGSEL1     = 0xC8 # Register Value Selection 1
+REGSEL2     = 0xCA # Register Value Selection 2
+PWMFRSEL    = 0xCC # PWM Frequency Selection
 
-VRHS        = 0xC3
-VDVSET      = 0xC4
-VCMOFSET    = 0xC5
-FRCTR2      = 0xC6
-CABCCTRL    = 0xC7
-REGSEL1     = 0xC8
-REGSEL2     = 0xCA
-PWMFRSEL    = 0xCC
-
-PWCTRL1     = 0xD0
-VAPVANEN    = 0xD2
-CMD2EN      = 0xDF5A6902
-PVGAMCTRL   = 0xE0
-NVGAMCTRL   = 0xE1
-DGMLUTR     = 0xE2
-DGMLUTB     = 0xE3
-GATECTRL    = 0xE4
-PWCTRL2     = 0xE8
-EQCTRL      = 0xE9
-PROMCTRL    = 0xEC
-PROMEN      = 0xFA
-NVMSET      = 0xFC
-PROMACT     = 0xFE
+PWCTRL1     = 0xD0 # Power Control 1
+VAPVANEN    = 0xD2 # Enable VAP/VAN signal output
+CMD2EN      = 0xDF # Command 2 Enable
+PVGAMCTRL   = 0xE0 # Positive Voltage Gamma Control
+NVGAMCTRL   = 0xE1 # Negative Voltage Gamma Control
+DGMLUTR     = 0xE2 # Digital Gamma Look-up Table for Red
+DGMLUTB     = 0xE3 # Digital Gamma Look-up Table for Blue
+GATECTRL    = 0xE4 # Gate Control
+SPI2EN      = 0xE7 # SPI2 Enable
+PWCTRL2     = 0xE8 # Power Control 2
+EQCTRL      = 0xE9 # Equalize time control
+PROMCTRL    = 0xEC # Program Mode Control
+PROMEN      = 0xFA # Program Mode Enable
+NVMSET      = 0xFC # NVM Setting
+PROMACT     = 0xFE # Program action
 
 # Colours for convenience
 BLACK       = 0x0000 # 0b 00000 000000 00000
@@ -115,7 +119,7 @@ YELLOW      = 0xFFE0 # 0b 11111 111111 00000
 WHITE       = 0xFFFF # 0b 11111 111111 11111
 
 
-class ST7789(LCD_SPI):
+class ST7789(_LCD_SPI):
     """Representation of an ST7789 IPS LCD."""
 
     def __init__(self, pi, mode=3, rst=25, dc=24, led=8):
@@ -134,7 +138,6 @@ class ST7789(LCD_SPI):
         super().__init__(self.pi, 0, SPI_CLOCK_HZ, self.mode, self.rst, self.dc)
 
     def reset(self):
-        """Reset the display, if reset pin is connected."""
         if self.rst is not None:
             self.pi.write(self.rst, 1)
             time.sleep(0.100)
@@ -144,10 +147,6 @@ class ST7789(LCD_SPI):
             time.sleep(0.100)
 
     def _init(self):
-        # Initialize the display.  Broken out as a separate function so it can
-        # be overridden by other displays in the future.
-
-        time.sleep(0.010)
         self.command(SLPOUT)
         time.sleep(0.150)
 
