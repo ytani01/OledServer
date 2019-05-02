@@ -70,41 +70,65 @@ class SSD1306(_LCD_I2C._LCD_I2C):
 
     def _init(self):
         self.command(DISPLAYOFF)
-        self.command(SETDISPLAYCLOCKDIV)
-        self.command(0x80)
-        self.command(SETMULTIPLEX)
-        self.command(0x3F)
-        self.command(SETDISPLAYOFFSET)
-        self.command(0x00)
-        self.command(SETSTARTLINE | 0x00)
-        self.command(CHARGEPUMP)
-        self.command(0x14)
-        self.command(MEMORYMODE)
-        self.command(0x00)
+
+        self.data(SETDISPLAYCLOCKDIV)
+        self.data(0x80)
+
+        self.data(SETMULTIPLEX)
+        self.data(0x3F)
+
+        self.data(SETDISPLAYOFFSET)
+        self.data(0x00)
+
+        self.data(SETSTARTLINE)
+        self.data(0x00)
+        
+        self.data(MEMORYMODE)
+        self.data(0x00)
+
         self.command(SEGREMAP | 0x01)
+
         self.command(COMSCANDEC)
-        self.command(SETCOMPINS)
-        self.command(0x12)
-        self.command(SETCONTRAST)
-        self.command(0xCF)
-        self.command(SETPRECHARGE)
-        self.command(0xF1)
-        self.command(SETVCOMDETECT)
-        self.command(0x40)
+
+        self.data(SETCOMPINS)
+        self.data(0x12)
+        
+        self.data(SETCONTRAST)
+        self.data(0xCF)
+        
+        self.data(SETPRECHARGE)
+        self.data(0xF1)
+        
+        self.data(SETVCOMDETECT)
+        self.data(0x40)
+        
+        self.data(CHARGEPUMP)
+        self.data(0x14)
+        
         self.command(DISPLAYALLON_RESUME)
         self.command(NORMALDISPLAY)
 
-    def display(self, image=None):
+    def set_window(self, x0=0, y0=0, x1=None, y1=None):
+        if x1 is None:
+            x1 = self.width-1
+        if y1 is None:
+            y1 = self.height-1
+
+        self.data(COLUMNADDR)
+        self.data(x0)
+        self.data(x1)
+        
+        self.data(PAGEADDR)
+        self.data(y0)
+        self.data(y1)
+
+
+    def display(self, image=None, x0=0, y0=0, x1=None, y1=None):
         if image is None:
             image = self.buffer
             
-        self.command(COLUMNADDR)
-        self.command(0)
-        self.command(self.width-1)
-        self.command(PAGEADDR)
-        self.command(0)
-        self.command(self.pages-1)
-
+        self.set_window(x0, y0, x1, y1)
+        
         buf = bytearray(self.width * self.pages)
         idx = 0
         for pix in image.getdata():
@@ -112,10 +136,10 @@ class SSD1306(_LCD_I2C._LCD_I2C):
                 buf[self.offsets[idx]] |= self.mask[idx]
             idx += 1
 
-        reg = 0x40
         for i in range(0, len(buf), 16):
-            self.pi.i2c_write_i2c_block_data(self.i2c, reg, buf[i:i+16])
+            self.data(self.i2c, buf[i:i+16])
+
 
     def clear(self):
-        pass
-    
+        width, height = self.buffer.size
+        self.buffer.putdata([(0)]*(width*height))

@@ -20,6 +20,7 @@ class _LCD:
         # NumPy is much faster at doing this. NumPy code provided by:
         # Keith (https://www.blogger.com/profile/02555547344016007163)
         pb = np.array(image.convert(self.color_mode)).astype('uint16')
+        print('pb=%s' % pb[0])
         color = ((pb[:,:,0] & 0xF8) << 8) | ((pb[:,:,1] & 0xFC) << 3) | (pb[:,:,2] >> 3)
         return np.dstack(((color >> 8) & 0xFF, color & 0xFF)).flatten().tolist()
 
@@ -33,8 +34,10 @@ class _LCD:
         self.reset()
         self._init()
 
+    '''
     def display():
         pass
+    '''
 
     def clear():
         pass

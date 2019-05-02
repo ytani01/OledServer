@@ -2,6 +2,9 @@
 import pigpio
 import _LCD
 
+MODE_CMD  = 0x00
+MODE_DATA = 0x40
+
 class _LCD_I2C(_LCD._LCD):
     def __init__(self, pi, color_mode, i2c_bus, i2c_addr):
         self.pi         = pi
@@ -13,13 +16,11 @@ class _LCD_I2C(_LCD._LCD):
 
         super().__init__(self.pi, self.color_mode)
 
-    def command(self, val):
-        reg = 0x00
-        self.pi.i2c_write_byte_data(self.i2c, reg, val)
+    def command(self, *val):
+        self.pi.i2c_write_i2c_block_data(self.i2c, MODE_CMD, list(val))
 
-    def data(self, val):
-        reg = 0x40
-        self.pi.i2c_write_byte_data(self.i2c, reg, val)
+    def data(self, *val):
+        self.pi.i2c_write_i2c_block_data(self.i2c, MODE_DATA, list(val))
 
     def cleanup(self):
         print('%s.cleanup()' % __class__.__name__)

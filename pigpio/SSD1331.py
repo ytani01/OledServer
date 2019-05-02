@@ -54,32 +54,36 @@ MAGENTA     = 0xF81F # 0b 11111 000000 11111
 YELLOW      = 0xFFE0 # 0b 11111 111111 00000
 WHITE       = 0xFFFF # 0b 11111 111111 11111
 
+COLOR_MODE = 'RGB'
 
 class SSD1331(_LCD_SPI):
     """Representation of an ST7789 IPS LCD."""
 
-    def __init__(self, pi, mode=3, rst=25, dc=24, led=0):
-        self.pi = pi
-        self.mode = mode
-        self.rst = rst
-        self.dc  = dc
-        self.led = led
+    def __init__(self, pi, spi_mode=3, spi_rst=25, spi_dc=24, led=0):
+        self.pi       = pi
+        self.spi_mode = mode
+        self.spi_rst  = rst
+        self.spi_dc   = dc
+        self.led      = led
 
-        self.width = WIDTH
-        self.height = HEIGHT
-        self.size = (self.width, self.height)
+        self.width      = WIDTH
+        self.height     = HEIGHT
+        self.size       = (self.width, self.height)
+        self.color_mode = COLOR_MODE
         
         self.pi.set_mode(self.dc, pigpio.OUTPUT)
 
-        super().__init__(self.pi, 0, SPI_CLOCK_HZ, self.mode, self.rst, self.dc)
+        super().__init__(self.pi, self.color_mode,
+                         0, SPI_CLOCK_HZ, self.spi_mode,
+                         self.spi_rst, self.spi_dc)
 
     def reset(self):
         if self.rst is not None:
-            self.pi.write(self.rst, 1)
+            self.pi.write(self.spi_rst, 1)
             time.sleep(0.100)
-            self.pi.write(self.rst, 0)
+            self.pi.write(self.spi_rst, 0)
             time.sleep(0.100)
-            self.pi.write(self.rst, 1)
+            self.pi.write(self.spi_rst, 1)
             time.sleep(0.100)
 
     def _init(self):
@@ -114,7 +118,7 @@ class SSD1331(_LCD_SPI):
         self.command([0x81, level])
         self.command([0x82, level])
         self.command([0x83, level])
-
+        
     def display(self, image=None, x0=0, y0=0, x1=None, y1=None):
         if image is None:
             image = self.buffer

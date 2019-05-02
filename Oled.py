@@ -12,6 +12,7 @@ from luma.oled.device import ssd1306, ssd1327, ssd1331
 import Adafruit_GPIO as GPIO
 import Adafruit_GPIO.SPI as SPI
 from ST7789 import ST7789 as st7789
+#from st7789 import st7789
 from PIL import Image, ImageDraw, ImageFont
 
 import click
@@ -133,6 +134,11 @@ SPI pins
             self.mode   = 'RGB'
             
         if self.dev == 'st7789':
+            '''
+            self.serial = spi(device=self.param1, port=self.param2, cs_high=False)
+            self.disp   = st7789(self.serial)
+            self.mode   = 'RGB'
+            '''
             self.SPI_MODE = 0b11
             self.serial = SPI.SpiDev(self.param1, self.param2)
             self.disp   = st7789(spi=self.serial, mode=self.SPI_MODE,

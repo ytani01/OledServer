@@ -124,7 +124,7 @@ SPI pins
             self.disp = ST7789(self.pi)
             self.disp.begin()
             
-        if self.disp == None:
+        if self.disp is None:
             self.logger.error('invalid device: %s', self.dev)
             raise RuntimeError('invalid device: %s' % self.dev)
         self.disp.persist = True
@@ -169,7 +169,7 @@ SPI pins
     def display(self, img=None):
         self.logger.debug('')
 
-        if img == None:
+        if img is None:
             img = self.image
 
         while True:
