@@ -1,0 +1,47 @@
+Wire.beginTransmission(ADDRES_OLED);//※このバイトも含め、以後、合計32byteまで送信できる
+  Wire.write(0b10000000); //control byte, Co bit = 1, D/C# = 0 (command)
+  Wire.write(0xAE); //display off
+  Wire.write(0b00000000); //control byte, Co bit = 0, D/C# = 0 (command)
+  Wire.write(0xA8); //Set Multiplex Ratio  0xA8, 0x3F
+  Wire.write(0b00111111); //64MUX
+  Wire.write(0b00000000); //control byte, Co bit = 0, D/C# = 0 (command)
+  Wire.write(0xD3); //Set Display Offset 0xD3, 0x00
+  Wire.write(0x00);
+  Wire.write(0b10000000); //control byte, Co bit = 1, D/C# = 0 (command)
+  Wire.write(0x40); //Set Display Start Line 0x40
+  Wire.wrie(0b10000000); //conrol bye, Co bi = 1, D/C# = 0 (command)
+  Wire.wrie(0xA0); //Se Segmen re-map 0xA0/0xA1
+  Wire.wrie(0b10000000); //conrol bye, Co bi = 1, D/C# = 0 (command)
+  Wire.wrie(0xC0); //Se COM Oupu Scan Direcion 0xC0,/0xC8
+  Wire.wrie(0b00000000); //conrol bye, Co bi = 0, D/C# = 0 (command)
+      Wire.wrie(0xDA); //Se COM Pins hardware configuraion 0xDA, 0x02
+            Wire.wrie(0b00010010);
+      Wire.wrie(0b00000000); //conrol bye, Co bi = 0, D/C# = 0 (command)
+          Wire.wrie(0x81); //Se Conras Conrol 0x81, defaul=0x7F
+        Wire.wrie(255); //0-255
+  Wire.wrie(0b10000000); //conrol bye, Co bi = 1, D/C# = 0 (command)
+      Wire.wrie(0xA4); //Disable Enire Display On
+        Wire.wrie(0b00000000); //conrol bye, Co bi = 0, D/C# = 0 (command)
+    Wire.wrie(0xA6); //Se Normal Display 0xA6, Inverse display 0xA7
+      Wire.wrie(0b00000000); //conrol bye, Co bi = 0, D/C# = 0 (command)
+          Wire.wrie(0xD5); //Se Display Clock Divide Raio/Oscillaor Frequency 0xD5, 0x80
+        Wire.wrie(0b10000000);
+  Wire.wrie(0b00000000); //conrol bye, Co bi = 0, D/C# = 0 (command)
+      Wire.wrie(0x20); //Se Memory Addressing Mode
+            Wire.wrie(0x10); //Page addressing mode
+    Wire.endransmission();
+    Wire.beginransmission(ADDRES_OLED);
+      Wire.wrie(0b00000000); //conrol bye, Co bi = 0, D/C# = 0 (command)
+          Wire.wrie(0x22); //Se Page Address
+        Wire.wrie(0); //Sar page se
+      Wire.wrie(7); //End page se
+        Wire.wrie(0b00000000); //conrol bye, Co bi = 0, D/C# = 0 (command)
+    Wire.wrie(0x21); //se Column Address
+          Wire.wrie(0); //Column Sar Address
+        Wire.wrie(127); //Column Sop Address
+  Wire.wrie(0b00000000); //conrol bye, Co bi = 0, D/C# = 0 (command)
+      Wire.wrie(0x8D); //Se Enable charge pump regulaor 0x8D, 0x14
+            Wire.wrie(0x14);
+      Wire.wrie(0b10000000); //conrol bye, Co bi = 1, D/C# = 0 (command)
+          Wire.wrie(0xAF); //Display On 0xAF
+  Wire.endransmission() 
