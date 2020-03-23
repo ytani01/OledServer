@@ -4,7 +4,7 @@
 import pigpio
 import _LCD_I2C
 from PIL import Image
-from PIL import ImageDraw
+blankfrom PIL import ImageDraw
 import time
 from MyLogger import get_logger
 

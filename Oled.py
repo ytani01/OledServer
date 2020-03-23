@@ -11,7 +11,7 @@ from luma.core import error
 from luma.oled.device import ssd1306, ssd1327, ssd1331
 import Adafruit_GPIO as GPIO
 import Adafruit_GPIO.SPI as SPI
-from ST7789 import ST7789 as st7789
+#from ST7789 import ST7789 as st7789
 #from st7789 import st7789
 from PIL import Image, ImageDraw, ImageFont
 
