@@ -50,7 +50,6 @@ SPI pins
         self._log.debug('dev    = %s',   dev)
         self._log.debug('param1 = %d',   param1)
         self._log.debug('param2 = %d(0x%X)', param2, param2)
-        self.debug = debug
 
         self.dev  = dev
         self.param1 = param1
@@ -330,7 +329,7 @@ class Sample:
 
         self.dev  = dev
 
-        self.ol = Oled(self.dev, debug=self.debug)
+        self.ol = Oled(self.dev, debug=self._dbg)
 
         self.col = {}
         self.col['bg'] = 255
@@ -339,14 +338,14 @@ class Sample:
             self.col['bg'] = 0x00ff00  # 'green'
             self.col['ball'] = ['red', 'blue']
 
-        self.bg   = BG(self.ol, self.col['bg'], 2, debug=debug)
+        self.bg   = BG(self.ol, self.col['bg'], 2, debug=self._dbg)
         self.ball = []
         self.ball.append(Ball(self.ol, self.col['ball'][0],
                               7, (5, 10), (2, -1),
-                              debug=debug))
+                              debug=self._dbg))
         self.ball.append(Ball(self.ol, self.col['ball'][1],
                               7, (10, 5), (1, -2),
-                              debug=debug))
+                              debug=self._dbg))
 
         self.bg.draw()
         for i in range(len(self.ball)):
