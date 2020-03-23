@@ -48,7 +48,7 @@ class OledPart:
         self.logger.debug('rows    =%d', rows)
         self.logger.debug('zenkaku =%s', zenkaku)
         self.logger.debug('crlf    =%s', crlf)
-        
+
         self.enable = True
 
         self.disp_row = disp_row
@@ -56,7 +56,7 @@ class OledPart:
 
         self.zenkaku  = zenkaku
         self.crlf     = crlf
-        
+
         self.cur_row  = 0
         self.clear()		# self.line[]
 
@@ -70,7 +70,7 @@ class OledPart:
             if self.crlf:
                 self.line.pop(0)
                 self.line.append('')
-            
+
         self.line[self.cur_row] = text
 
         if self.crlf:
@@ -126,7 +126,7 @@ class OledText:
 
     def close(self):
         self.oled.cleanup()
-        
+
     # set header and footer
     def set_layout(self, header_lines=0, footer_lines=0, display_now=True):
         self.logger.debug('header_lines = %d', header_lines)
@@ -136,7 +136,7 @@ class OledText:
         header_start = 0
         body_start   = header_lines
         footer_start = self.disp_rows - footer_lines
-        
+
         body_lines   = self.disp_rows - header_lines - footer_lines
         if header_lines > 0:
             body_start += 1
@@ -156,14 +156,14 @@ class OledText:
         # display
         self._draw_border()
         self._display(display_now)
-            
+
         return True
 
     # output physical display
     def _display(self, display_now=True):
         if not self.enable:
             return
-        
+
         if display_now:
             self.oled.display()
 
@@ -176,13 +176,15 @@ class OledText:
         rows = self.part['header'].rows
         if rows > 0:
             y1 = self.ch_h * (rows + 0.5) - 1
-            self.oled.draw.line([(x1, y1), (x2, y1)], fill=self.color, width=width)
+            self.oled.draw.line([(x1, y1), (x2, y1)],
+                                fill=self.color, width=width)
 
         # footer
         rows = self.part['footer'].rows
         if rows > 0:
             y1 = self.oled.disp.height - self.ch_h * (rows + 0.5) - 1
-            self.oled.draw.line([(x1, y1), (x2, y1)], fill=self.color, width=width)
+            self.oled.draw.line([(x1, y1), (x2, y1)],
+                                fill=self.color, width=width)
 
         self._display(display_now)
 
@@ -196,7 +198,7 @@ class OledText:
         y2 = y1 + self.ch_h * self.part[part].rows - 1
         self.oled.draw.rectangle([(x1, y1), (x2, y2)], outline=0, fill='black')
         self.logger.debug('clear rectangle (%d,%d),(%d,%d)', x1, y1, x2, y2)
-        
+
     # clear display
     def clear(self, part='', display_now=True):
         if part == '':
@@ -229,14 +231,14 @@ class OledText:
 
         if crlf != None:
             self.part[part].crlf = crlf
-        
+
     # set part and row
     def set_row(self, row, part=''):
         if part == '':
             part = self.cur_part
 
         self.set_part(part, row=row)
-    
+
     # set zenkaku_flag
     def set_zenkaku(self, zenkaku, part=''):
         if part == '':
@@ -327,16 +329,16 @@ class OledText:
 
                 line = ''
                 zenkaku_len = 0
-                
+
                 if not crlf:
                     break
-                
+
             line += ch
             zenkaku_len += ch_len
 
         if zenkaku_len > 0:
             self._print_1line(line, part=part, crlf=crlf)
-        
+
         # display OLED
         self._display(display_now)
         
@@ -346,7 +348,6 @@ class OledText:
 @click.option('--debug', '-d', 'debug', is_flag=True, default=False,
               help='debug flag')
 def main(display, debug):
-    
     logger.setLevel(INFO)
     if debug:
         logger.setLevel(DEBUG)
