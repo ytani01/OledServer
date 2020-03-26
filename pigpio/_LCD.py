@@ -3,6 +3,7 @@ import numpy as np
 from PIL import Image
 from PIL import ImageDraw
 
+
 class _LCD:
     def __init__(self, pi, color_mode):
         self.pi         = pi
@@ -10,13 +11,16 @@ class _LCD:
         self.buffer     = Image.new(self.color_mode, self.size)
 
     def color565(self, r, g, b):
-        """Convert red, green, blue components to a 16-bit 565 RGB value. Components
-        should be values 0 to 255.
+        """
+        Convert red, green, blue components to a 16-bit 565 RGB value.
+        Components should be values 0 to 255.
         """
         return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3)
 
     def image_to_data(self, image):
-        """Generator function to convert a PIL image to 16-bit 565 RGB bytes."""
+        """
+        Generator function to convert a PIL image to 16-bit 565 RGB bytes.
+        """
         # NumPy is much faster at doing this. NumPy code provided by:
         # Keith (https://www.blogger.com/profile/02555547344016007163)
         pb = np.array(image.convert(self.color_mode)).astype('uint16')

@@ -1,9 +1,12 @@
 #
+#
+#
 import pigpio
 import _LCD
 
 MODE_CMD  = 0x00
 MODE_DATA = 0x40
+
 
 class _LCD_I2C(_LCD._LCD):
     def __init__(self, pi, color_mode, i2c_bus, i2c_addr):

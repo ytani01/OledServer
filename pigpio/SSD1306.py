@@ -4,7 +4,7 @@
 import pigpio
 import _LCD_I2C
 from PIL import Image
-blankfrom PIL import ImageDraw
+from PIL import ImageDraw
 import time
 from MyLogger import get_logger
 
@@ -52,14 +52,15 @@ HEIGHT     = 64
 COLOR_MODE = '1'
 I2C_ADDR   = '0x3c'
 
+
 class SSD1306(_LCD_I2C._LCD_I2C):
     _log = get_logger(__name__, False)
 
     def __init__(self, pi, i2c_bus, i2c_addr=I2C_ADDR, debug=False):
         self._dbg = debug
-        self._log = get_logger(__class__.__name__, self._dbg)
-        self._log.debug('')
-        
+        __class__._log = get_logger(__class__.__name__, self._dbg)
+        self._log.debug('i2c_bus=%s, i2c_addr=%s', i2c_bus, i2c_addr)
+
         self.pi       = pi
         self.i2c_bus  = i2c_bus
         self.i2c_addr = i2c_addr
@@ -68,12 +69,14 @@ class SSD1306(_LCD_I2C._LCD_I2C):
         self.height     = HEIGHT
         self.size       = (self.width, self.height)
         self.pages      = self.height//8
-        self.mask       = [1 << (i // self.width) % 8 for i in range(self.width * self.height)]
-        self.offsets    = [(self.width * (i // (self.width * 8))) for i in range(self.width * self.height)]
+        self.mask       = [1 << (i // self.width) % 8
+                           for i in range(self.width * self.height)]
+        self.offsets    = [(self.width * (i // (self.width * 8)))
+                           for i in range(self.width * self.height)]
         self.color_mode = COLOR_MODE
 
         super().__init__(self.pi, self.color_mode, self.i2c_bus, self.i2c_addr)
-    
+
     def reset(self):
         return
 
@@ -101,19 +104,19 @@ class SSD1306(_LCD_I2C._LCD_I2C):
 
         self.data(SETCOMPINS)
         self.data(0x12)
-        
+
         self.data(SETCONTRAST)
         self.data(0xCF)
-        
+
         self.data(SETPRECHARGE)
         self.data(0xF1)
-        
+
         self.data(SETVCOMDETECT)
         self.data(0x40)
-        
+
         self.data(CHARGEPUMP)
         self.data(0x14)
-        
+
         self.command(DISPLAYALLON_RESUME)
         self.command(NORMALDISPLAY)
 
@@ -126,19 +129,19 @@ class SSD1306(_LCD_I2C._LCD_I2C):
         self.data(COLUMNADDR)
         self.data(x0)
         self.data(x1)
-        
+
         self.data(PAGEADDR)
         self.data(y0)
         self.data(y1)
 
-
     def display(self, image=None, x0=0, y0=0, x1=None, y1=None):
-        self._log.debug('')
+        self._log.debug('(x0,y0)=(%s,%s), (x1,y1)=(%s,%s)',
+                        x0, y0, x1, y1)
         if image is None:
             image = self.buffer
-            
+
         self.set_window(x0, y0, x1, y1)
-        
+
         buf = bytearray(self.width * self.pages)
         idx = 0
         for pix in image.getdata():
@@ -147,8 +150,8 @@ class SSD1306(_LCD_I2C._LCD_I2C):
             idx += 1
 
         for i in range(0, len(buf), 16):
+            self._log.debug('i=%s', i)
             self.data(self.i2c, buf[i:i+16])
-
 
     def clear(self):
         width, height = self.buffer.size

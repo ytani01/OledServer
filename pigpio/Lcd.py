@@ -41,11 +41,11 @@ SPI pins
     SPI_CS  = 8
 
     def __init__(self, pi, dev, param1=-1, param2=-1, debug=False):
-        self._log = get_logger(__class__.__name__, debug)
+        self._dbg = debug
+        self._log = get_logger(__class__.__name__, self._dbg)
         self._log.debug('dev    = %s',   dev)
         self._log.debug('param1 = %d',   param1)
         self._log.debug('param2 = %d(0x%X)', param2, param2)
-        self.debug = debug
 
         self.pi     = pi
         self.dev    = dev
@@ -96,7 +96,8 @@ SPI pins
         if self.dev == 'ssd1306':
             if self.param2 == 0:
                 self.param2 = self.I2C_ADDR
-            self.disp = SSD1306(self.pi, self.param1, self.param2)
+            self.disp = SSD1306(self.pi, self.param1, self.param2,
+                                debug=self._dbg)
             self.disp.begin()
 
         if self.dev == 'ssd1331':
@@ -160,7 +161,7 @@ SPI pins
                 self.disp.display(img)
                 break
             except Exception as e:
-                self._log.error('%s:%s', type(e), e)
+                self._log.error('%s:%s', type(e).__name__, e)
                 time.sleep(0.1)
 
     def loadImagefile(self, imgfile, display_now=False, clear_flag=False):
@@ -204,7 +205,7 @@ class BG:
 
     def __init__(self, ol, color, w, debug=False):
         self._log = get_logger(__class__.__name__, debug)
-        self.debug = debug
+        self._dbg = debug
         self._log.debug('color = %s', color)
         self._log.debug('w     = %d', w)
 
@@ -242,7 +243,7 @@ class BG:
 class Ball:
     def __init__(self, ol, color, r, xy, vxy=(0, 0), debug=False):
         self._log = get_logger(__class__.__name__, debug)
-        self.debug = debug
+        self._dbg = debug
         self._log.debug('color = %s', str(color))
         self._log.debug('xy    = %s', xy)
         self._log.debug('r     = %d', r)
@@ -296,13 +297,13 @@ class Ball:
 class Sample:
     def __init__(self, dev, debug=False):
         self._log = get_logger(__class__.__name__, debug)
-        self.debug = debug
+        self._dbg = debug
         self._log.debug('dev  = %s',   dev)
 
         self.pi   = pigpio.pi()
         self.dev  = dev
 
-        self.ol = Lcd(self.pi, self.dev, debug=self.debug)
+        self.ol = Lcd(self.pi, self.dev, debug=self._dbg)
 
         self.col = {}
         self.col['bg'] = 255
