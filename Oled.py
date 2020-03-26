@@ -21,7 +21,7 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
 
 class Oled:
-    '''
+    """
 OLED
 
 SPI pins
@@ -35,7 +35,7 @@ SPI pins
 
   ST7789: LED = CS = BCM8
 
-    '''
+    """
 
     DEF_I2C_ADDR = 0x3C
     I2C_DEV = ['ssd1306', 'ssd1327']
@@ -117,12 +117,12 @@ SPI pins
             self.mode   = 'RGB'
 
         if self.dev == 'st7789':
-            '''
+            """
             self.serial = spi(device=self.param1, port=self.param2,
                               cs_high=False)
             self.disp   = st7789(self.serial)
             self.mode   = 'RGB'
-            '''
+            """
             self.SPI_MODE = 0b11
             self.serial = SPI.SpiDev(self.param1, self.param2)
             self.disp   = st7789(spi=self.serial, mode=self.SPI_MODE,

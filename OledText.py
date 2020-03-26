@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import sys
 from Oled import Oled
 from PIL import Image, ImageDraw, ImageFont
-#import textwrap
+# import textwrap
 import mojimoji
 import unicodedata
 import time
@@ -25,6 +24,7 @@ handler_fmt = Formatter(
 handler.setFormatter(handler_fmt)
 logger.addHandler(handler)
 logger.propagate = False
+
 def init_logger(name, debug):
     l = logger.getChild(name)
     if debug:
@@ -33,15 +33,17 @@ def init_logger(name, debug):
         l.setLevel(INFO)
     return l
 
-# $ wget http://www.geocities.jp/littlimi/arc/misaki/misaki_ttf_2015-04-10.zip
-FONT_DIR	= '/home/pi/font/misakifont'
-FONT_NAME	= 'misaki_gothic.ttf'
-FONT_PATH	= FONT_DIR + '/' + FONT_NAME
 
-#
-# part: 'header', 'body', 'footer'
-#
+# $ wget http://www.geocities.jp/littlimi/arc/misaki/misaki_ttf_2015-04-10.zip
+FONT_DIR = '/home/pi/font/misakifont'
+FONT_NAME = 'misaki_gothic.ttf'
+FONT_PATH = FONT_DIR + '/' + FONT_NAME
+
+
 class OledPart:
+    """
+    part: 'header', 'body', 'footer'
+    """
     def __init__(self, disp_row, rows=0, zenkaku=True, crlf=True, debug=False):
         self.logger = init_logger(__class__.__name__, debug)
         self.logger.debug('disp_row=%d', disp_row)
@@ -66,7 +68,7 @@ class OledPart:
 
     def writeline(self, text):
         if self.cur_row > self.rows - 1:
-            self.cur_row = self.rows -1
+            self.cur_row = self.rows - 1
             if self.crlf:
                 self.line.pop(0)
                 self.line.append('')
@@ -75,10 +77,11 @@ class OledPart:
 
         if self.crlf:
             self.cur_row += 1
-#
-#
-#
+
+
 class OledText:
+    """
+    """
     # 全角モードで半角に変換し直す文字
     TRANS_SRC = '　．、，－＋＊／’”｀：；（）［］＜＞＃＄％＆＠￥'
     TRANS_DST = ' .､,-+*/\'\"`:;()[]<>#$%&@\\'
@@ -113,7 +116,7 @@ class OledText:
                                        encoding='unic')
         (self.ch_w, self.ch_h) = self.font.getsize('８')
         self.ch_h += 1
-        
+
         # physical cols and rows
         self.disp_cols = int(self.oled.disp.width  / self.ch_w)
         self.disp_rows = int(self.oled.disp.height / self.ch_h)
@@ -127,8 +130,10 @@ class OledText:
     def close(self):
         self.oled.cleanup()
 
-    # set header and footer
     def set_layout(self, header_lines=0, footer_lines=0, display_now=True):
+        """
+        set header and footer
+        """
         self.logger.debug('header_lines = %d', header_lines)
         self.logger.debug('footer_lines = %d', footer_lines)
 
@@ -159,16 +164,20 @@ class OledText:
 
         return True
 
-    # output physical display
     def _display(self, display_now=True):
+        """
+        output physical display
+        """
         if not self.enable:
             return
 
         if display_now:
             self.oled.display()
 
-    # draw border
     def _draw_border(self, width=2, display_now=False):
+        """
+        draw border
+        """
         x1 = 0
         x2 = self.oled.disp.width - 1
 
@@ -199,8 +208,10 @@ class OledText:
         self.oled.draw.rectangle([(x1, y1), (x2, y2)], outline=0, fill='black')
         self.logger.debug('clear rectangle (%d,%d),(%d,%d)', x1, y1, x2, y2)
 
-    # clear display
     def clear(self, part='', display_now=True):
+        """
+        clear display
+        """
         if part == '':
             part = self.cur_part
 
@@ -209,12 +220,14 @@ class OledText:
 
         # clear part area
         self._clear(part)
-        
+
         # display
         self._display(display_now)
 
-    # selct current part
     def set_part(self, part='body', row=-1, zenkaku=None, crlf=None):
+        """
+        select current part
+        """
         if not self.enable:
             return
 
@@ -226,40 +239,44 @@ class OledText:
         if row >= 0:
             self.part[part].cur_row = row
 
-        if zenkaku != None:
+        if zenkaku is not None:
             self.part[part].zenkaku = zenkaku
 
-        if crlf != None:
+        if crlf is not None:
             self.part[part].crlf = crlf
 
-    # set part and row
     def set_row(self, row, part=''):
+        """
+        set part and row
+        """
         if part == '':
             part = self.cur_part
 
         self.set_part(part, row=row)
 
-    # set zenkaku_flag
     def set_zenkaku(self, zenkaku, part=''):
+        """
+        set zenkaku flag
+        """
         if part == '':
             part = self.cur_part
 
         self.set_part(part, zenkaku=zenkaku)
 
-    # 改行設定
     def set_crlf(self, crlf, part=''):
+        """
+        開業設定
+        """
         if part == '':
             part = self.cur_part
 
         self.set_part(part, crlf=crlf)
 
-    #
     def _draw_1line(self, disp_row, text, fill='white'):
         x1, y1 = 0, disp_row * self.ch_h
-        self.oled.draw.text((x1,y1), text, font=self.font, fill=self.color)
+        self.oled.draw.text((x1, y1), text, font=self.font, fill=self.color)
         self.logger.debug('draw.text(%d, %d)', x1, y1)
 
-    #
     def _draw_part(self, part=''):
         if part == '':
             part = self.cur_part
@@ -273,8 +290,10 @@ class OledText:
             self._draw_1line(disp_row, txt)
             disp_row += 1
 
-    # 1行分出力し、crlfフラグに応じてスクロール処理も行う
     def _print_1line(self, text, part='', crlf=None):
+        """
+        1行分出力し、crlfフラグに応じてスクロール処理も行う
+        """
         self.logger.debug('part=%s crlf=%s text=\'%s\'', part, crlf, text)
 
         if part == '':
@@ -283,7 +302,7 @@ class OledText:
         if self.part[part].rows < 1:
             return
 
-        if crlf == None:
+        if crlf is None:
             crlf = self.part[part].crlf
             self.logger.debug('crlf=%s', crlf)
         self.part[part].crlf = crlf
@@ -293,13 +312,15 @@ class OledText:
         # (text[]上での変更を反映: only draw, not display yet
         self._draw_part(part)
 
-    # 長い行を折り返して出力する。必要に応じてスクロールも行う。
     def print(self, text, part='', crlf=None, display_now=True):
+        """
+        長い行を折り返して出力する。必要に応じてスクロールも行う。
+        """
         self.logger.debug('part=\'%s\' crlf=%s text=\'%s\'', part, crlf, text)
         if part == '':
             part = self.cur_part
             self.logger.debug('part=%-6s', part)
-        if crlf == None:
+        if crlf is None:
             crlf = self.part[part].crlf
             self.logger.debug('crlf=%s', crlf)
         self.part[part].crlf = crlf
@@ -324,7 +345,7 @@ class OledText:
 
             if zenkaku_len + ch_len > self.disp_cols:
                 self.logger.debug('line=%s zenkaku_len=%.1f ch_len=%.1f',
-                             line, zenkaku_len, ch_len)
+                                  line, zenkaku_len, ch_len)
                 self._print_1line(line, part=part, crlf=crlf)
 
                 line = ''
@@ -341,8 +362,8 @@ class OledText:
 
         # display OLED
         self._display(display_now)
-        
-#####
+
+
 @click.command(help='OLED Text library')
 @click.argument('display', nargs=1)
 @click.option('--debug', '-d', 'debug', is_flag=True, default=False,
@@ -373,7 +394,7 @@ def main(display, debug):
     ot.print('ABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞABCあいうえお0123456789ガギグゲゴｶﾞｷﾞｸﾞｹﾞｺﾞ')
     time.sleep(2)
     ot.print('font: %d = %d x %d pixels' % (ot.fontsize,
-                                              ot.ch_w, ot.ch_h))
+                                            ot.ch_w, ot.ch_h))
     ot.print('%d cols x %d rows' % (ot.disp_cols, ot.disp_rows))
     time.sleep(2)
     ot.set_row(1, 'header')
@@ -396,6 +417,7 @@ def main(display, debug):
     time.sleep(2)
     ot.clear('header')
     ot.close()
+
 
 if __name__ == '__main__':
     main()
