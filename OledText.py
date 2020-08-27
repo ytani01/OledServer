@@ -13,8 +13,8 @@ import click
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
 
-# $ wget http://www.geocities.jp/littlimi/arc/misaki/misaki_ttf_2015-04-10.zip
-FONT_DIR = '/home/pi/font/misakifont'
+# $ apt install fonts-misaki
+FONT_DIR = '/usr/share/fonts/truetype'
 FONT_NAME = 'misaki_gothic.ttf'
 FONT_PATH = FONT_DIR + '/' + FONT_NAME
 
